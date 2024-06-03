@@ -3,10 +3,13 @@
 *.so
 *.exe
 *.out
+bin/
+obj/
 
 # plots and datafiles
 *.dat
 *.png
+*.svg
 
 # those long DSMC simulations
 
@@ -16,4 +19,4 @@ data_evolution*
 
 data/
 plots/
-
+gallery/
