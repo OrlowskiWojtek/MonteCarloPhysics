@@ -1,0 +1,144 @@
+\documentclass[a4paper,12pt]{article}
+
+\input{"~/Desktop/Studia/LaTeX/setup.tex"}
+\usepackage{svg}
+
+\author{Wojciech Orłowski}
+\title{\textsc{Monte Carlo: symulacja procesów rzadkich przy pomocy równania
+typu Master, algorytm Gillespie} \\ sprawozdanie}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Wstęp}
+
+Podstawowym zagadnieniem kinetyki reakcji chemicznych jest prędkość reakcji związana z typem reakcji oraz współczynnikiem szybkości reakcji.
+Przykładem może być reakcja syntezy dwóch substratów do jednego produktu. 
+Prędkość takiej reakcji (czyli zmianę stężenia produktu w czasie) możemy zapisać jako:
+\begin{equation}
+	v = \dv{x_3}{t} = kx_1x_2,
+\end{equation}
+gdzie $x_1, x_2, x_3$ to stężenia substratów i produktu, a $k$ oznacza stałą szybkości reakcji. 
+W ten sposób zapisane równanie kinetyczne reakcji zależy od jej mechanizmu, wyznaczonego doświadczalnie. 
+W zadanym problemie wykonujemy symulację Monte Carlo układu w którym
+\begin{enumerate}
+	\item zachodzi reakcja syntezy $x_1 + x_2 \rightarrow x_3$ z stałą $k_3$ (rząd reakcji wynosi 2),
+	\item w układzie pojawiają się substraty $x_1$ i $x_2$ z stałymi kolejno $k_1$ i $k_2$ (rząd reakcji wynosi 0),
+	\item produkt syntezy $x_3$ jest usuwany z układu z stałą $k_4$ (rząd reakcji wynosi 1).
+\end{enumerate}
+Układ równań różniczkowych jaki wynika z opisu problemu przyjmuje postać:
+\begin{gather}
+	\dv{x_3}{t} = k_3x_1x_2 - k_4x_3 \\
+	\dv{x_2}{t} = -k_3x_1x_2 + k_2 \\
+	\dv{x_1}{t} = -k_3x_1x_2 + k_1 
+\end{gather}
+Układ ten możemy przepisać biorąc pod uwagę częstość zachodzących procesów
+\begin{gather}
+	\dv{x_3}{t} = \Gamma_3(t) - \Gamma_4(t) \\
+	\dv{x_2}{t} = -\Gamma_3(t) + \Gamma_2(t) \\
+	\dv{x_1}{t} = -\Gamma_3(t) + \Gamma_1(t) 
+\end{gather}
+Działanie procesów jest zależne od aktualnego stężenia substratów, które jest zależne od czasu.
+Natomiast w przypadku małych, obliczalnych na domowym komputerze układów działania procesów możemy zdefiniować jako zwiększanie zmniejszanie ilości kolejnych składników:
+\begin{align}
+	&\Gamma_1: x_1 += 1 \\
+	&\Gamma_2: x_2 += 1 \\
+	&\Gamma_3: x_3 += 1 \; ; \; x_2 -= 1 \; ; \; x_1 -= 1 \\
+	&\Gamma_4: x_3 -= 1
+\end{align}
+Do symulacji dynamiki zmian wykorzystano algorytm Gillespie. W algorytmie ten w sposób losowy wybieramy aktualnie zachodzący proces z prawdopodobieństwem wynikającym z obliczonych częstości reakcji:
+\begin{align}
+	&\Gamma_1 = k_1 \\
+	&\Gamma_2 = k_2 \\
+	&\Gamma_3 = k_3x_1x_2 \\
+	&\Gamma_4 = k_4x_3
+\end{align}
+Zgodnie z przebiegiem algorytmu należy w każdej iteracji
+\begin{enumerate}
+	\item obliczyć aktualne częstości zachodzenia procesów oraz ich sumę
+	\[ \Gamma_{max} = \sum_{i=1}^{4} \Gamma_i \],
+	\item wylosować przedział czasowy, w którym nie będzie zachodził żaden proces (krok iteracyjny)
+	\[ \Delta t = - \frac{1}{\Gamma_{max}} \ln(U_1); \; \; \; U_1 \sim U(0,1) \]
+	\item po czasie oczekiwania $\Delta t$ zachodzi jeden z procesów. Proces $m$ zostaje wylosowany zgodnie z prawdopodobieństwami określonymi przez częstość zachodzenia procesów
+	\[ m: U_2 \geq \sum_{i=1}^{m-1}\Gamma_i/\Gamma_{max} \; \; \land \; \; U_2 \leq \sum_{i=1}^{m}\Gamma_i/\Gamma_{max}; \; \; \; U_2 \sim U(0,1) \] 
+	\item wykonywane jest $m$-te zdarzenie, a następnie inkrementowany jest czas iteracji $t =t+\Delta t$.
+\end{enumerate}
+Iteracje są wykonywane dopóki spełniony jest warunek $t < t_{max}$. W celu zwiększenia dokładności wyników przebiegi powtarzane są wielokrotnie, a następnie uśrednianie. 
+Uśrednianie polega na zebraniu danych z konkretnych momentów czasowych, a następnie ich uśrednieniu w celu oszacowania wartości oczekiwanej i odchylenia standardowego. 
+
+\section*{Wyniki}
+
+Parametry jakie zostały narzucone wynosiły
+\begin{align}
+	 &\vb{k} = \{k_1, k_2, k_3, k_4\} = \{1,1,0.001,0.01\}; \nonumber \\
+	 &\vb{x_0} = \{x1(t=0), x2(t=0), x3(t=0)\} = \{ 120, 80, 1\}; \nonumber \\  
+	 &t_{max} =200 ; \; \; N = 50; \nonumber    
+\end{align}
+W celu sprawdzenia poprawności zaimplementowanego algorytmu najpierw została wykonana pojedyncza symulacja (pojedynczy przebieg, $P_{max} = 1$). 
+Ilości składników w zależności od czasu w pierwszym, pojedynczym przebiegu zostały przedstawione na rys. \ref{fig:first_run}
+
+\begin{figure}[H]
+	\centering
+	\includesvg[width = 0.7\textwidth]{../plots/svgs/task_1.svg}
+	\caption{Ilości składników reakcji w jednym przebiegu.}
+	\label{fig:first_run}
+\end{figure}
+
+\noaka Ilość substratów $x_1$ oraz $x_2$ zgodnie z oczekiwaniami maleje, a ilość $x_3$ (produktu) rośnie. Po pewnym czasie osiągana jest pewna wartość równowagowa każdego ze składników. Ilości składników ulegają dużym fluktuacjom w okolicach wartości równowagowej, co świadczy o konieczności uśredniania po wielu przebiegach. 
+\\
+\\
+Przykładowe 5 przebiegów ($P_{max} = 5$) zostało przedstawione na rys. \ref{fig:five_runs}.
+\begin{figure}[H]
+	\centering
+	\includesvg[width = 0.7\textwidth]{../plots/svgs/task_2.svg}
+	\caption{Ilości składników reakcji w pięciu przebiegach.}
+	\label{fig:five_runs}
+\end{figure}
+
+\noaka Każdy z przebiegów zachowuje się w podobny sposób jednak zauważalne są spore odchylenia w wartościach osiąganych w każdym z przebiegu.
+Przebiegi te, zgodnie z intuicją i z centralnym twierdzeniem granicznym, muszą się różnić i dla ustalonego czasu po stabilizacji będą one opisywane rozkładem normalnym.
+Aby określić jeden prawidłowy przebieg wzrostu produktu wyniki zostały uśrednione dla 100 przebiegów ($P_{max} = 100$). Wynik uśrednienia został przedstawiony na rys. \ref{fig:avg_run_100}
+\begin{figure}[H]
+	\centering
+	\includesvg[width = 0.7\textwidth]{../plots/svgs/task_3.svg}
+	\caption{Uśredniona z 100 przebiegów ilość produktu w układzie wraz z naniesioną niepewnością.}
+	\label{fig:avg_run_100}
+\end{figure} 
+
+\noaka Dla uśrednionego przebiegu z 100 przebiegów można zaobserwować bardzo małe odchylenie od wartości uśrednionej. 
+Świadczy to o wystarczającej liczbie wykonanych przebiegów. 
+W celu lepszej wizualizacji działania uśredniania możemy dane z uśredniania nanieść na wykres z narysowanymi przebiegami (rys. \ref{fig:add1})
+\begin{figure}[H]
+	\centering
+	\includesvg[width = 0.7\textwidth]{../plots/svgs/additional_1.svg}
+	\caption{Uśredniona z 100 przebiegów ilość produktu w układzie wraz z naniesioną niepewnością oraz przedstawione 100 przebiegów.}
+	\label{fig:add1}
+\end{figure} 
+
+\noaka Po uśrednionym przebiegu można zauważyć, że ma on tendencję wzrostową. 
+Może to wynikać z nie do końca ustalonego stanu końcowego.
+W czasie $t_{max}$ nie uzyskano stanu równowagowego, lecz stan bardzo bliski równowagowemu.
+Natomiast w czasie $t = t_{max}$ wartości $x_3$ powinny być zadane rozkładem normalnym, co można zauważyć tworząc histogram wartości $x_3$ dla 10000 przebiegów, co ilustruje rys. \ref{fig:add2}
+
+\begin{figure}[H]
+	\centering
+	\includesvg[width = 0.7\textwidth]{../plots/svgs/additional_2.svg}
+	\caption{Histogram uzyskanych wartości $x_3$ w czasie $t_{max}$ w 10000 przebiegach.}
+	\label{fig:add2}
+\end{figure} 
+
+\noaka Rozkład ten w sposób jakościowy można rozpoznać jako rozkład normalny, jednak aby dokonać ilościowego porównania należałoby wykonać test statystyczny np. test $\chi^2$.
+ 
+\subsection*{Podsumowanie}
+
+Podczas ćwiczenia udało się rozwiązać równanie typu \textit{Master} w sposób stochastyczny.
+Taki sposób rozwiązywania równań wiążę się z fluktuacjami rozwiązania, dlatego trzeba wykonać obliczenia wielokrotnie, w celu ich uśrednienia.
+Dokładność oszacowania zależy bezpośrednio od ilości wykonanych przebiegów.
+
+
+\end{document}
+
+
+

@@ -1,0 +1,159 @@
+\documentclass[a4paper, 12pt]{article}
+
+\input{"$HOME/Desktop/Studia/LaTeX/setup.tex"}
+
+\title{\textsc{Monte Carlo: proste całkowanie z szacowaniem wariancji}\\ - sprawozdanie}
+\author{Wojciech Orłowski}
+\date{\today}
+
+\begin{document}
+    \maketitle
+
+    \section{Wstęp}
+    
+    Celem ćwiczenia jest oszacowanie metodą Monte Carlo pola wspólnego dwóch przekrywających się pól.
+    Problem ten może być trudny do rozwiązania, a rozważania Monte Carlo pozwolą w łatwy sposób uzyskać podobne wyniki dla większej ilości wymiarów, gdzie rozważania geometryczne stają się jeszcze cięższe.
+    W celu rozwiązania tego problemu metodą Monte Carlo należy generować jednorodnie punkty w kole.
+    Taki generator został napisany na poprzednich zajęciach, a jego procedura jest następująca:
+    \begin{enumerate}
+        \item losowanie pary punktów $(x,y)$ o rozkładzie normalnym $N(0,1)$ korzystając z rozkładu jednorodnego $U_1,U_2 = U(0,1)$,
+        \[ x = \sqrt{-2\ln(U1)}\sin(2\pi U2), \]
+        \[ y = \sqrt{-2\ln(U1)}\cos(2\pi U2), \] 
+        \item normalizacje wylosowanych punktów do okręgu
+        \[ x = \frac{x}{\sqrt{x^2 + y^2}}, \] 
+        \[ y = \frac{y}{\sqrt{x^2 + y^2}}, \] 
+        \item przeskalowanie do rozkładu normalnego na kole
+        \[ q = \sqrt{(U(0,1))}, \]
+        \[ x = x \cdot q, \]
+        \[ y = y \cdot q, \]
+        \item przesunięcie oraz przeskalowanie do koła o innym promieniu
+        \[ x = x \cdot R_\alpha + x_\alpha, \]
+        \[ y = y \cdot R_\alpha + y_\alpha, \]
+        gdzie $R_\alpha, x_\alpha, y_\alpha$ oznaczają promień oraz współrzędne koła końcowego.
+    \end{enumerate}
+
+    \noaka Rozkład jednorodny w kole musi spełniać warunek normalizacji. 
+    Dla rozkładu jednorodnego funkcja gęstości prawdopodobieństwa (fgp) jest stała.
+    Zatem fgp jest stała na całym kole i wynosi
+    \[ f_\alpha(x,y) = \frac{1}{\pi R_\alpha^2}.  \] 
+    Całkę (czyli powierzchnie) części wspólnej definiujemy jako 
+    \[S_{\alpha,\beta} = \pi R^2_\alpha \iint_{x,y \in K_\alpha} \theta_{\alpha,\beta}(x,y) \; \dd x \dd y,  \]
+    gdzie $\theta$, zależna jest od pary punktów $(x,y)$, i definiowana jest jako
+    \[\theta_{\alpha, \beta}(x,y) = \begin{cases}
+        1, (x,y) \in K_\alpha \land (x,y) \in K_\beta \\
+        0, (x,y) \notin K_\alpha \lor (x,y) \notin K_\beta  \\ 
+    \end{cases} \] 
+    Gdzie właściwie wiedząc, że $(x,y)$ są przynależne do $K_\alpha$, wystarczy sprawdzić przynależność do $K_\beta$. 
+    W ten sposób możemy skonstruować metodę Monte Carlo - losując $(x,y)$ z $K_\alpha$, i sprawdzając czy punkt ten przynależy do $K_\beta$.
+    Pole powierzchni można obliczyć licząc tą całkę metodą Monte Carlo:
+    \begin{equation}
+        \mu^{(1)} = \bar{S}_{\alpha,\beta} = \frac{\pi R_\alpha^2}{N} \sum_{i=1}^N \theta_{\alpha,\beta}(x_i,y_i).
+        \label{mu_1}
+    \end{equation}
+    Drugi moment, który będzie potrzebny do obliczenia drugiego momentu centralnego (wariancji) obliczymy poprzez:
+    \[ \mu^{(2)} = \frac{1}{N} \sum_{i = 1}^{N} \left( \pi R_\alpha^2  \theta_{\alpha,\beta}(x_i,y_i) \right)^2, \]
+    korzystając z faktu, że funkcja $\theta$ przyjmuje tylko wartości 0 i 1, powyższe wyrażenie można przepisać jako
+    \begin{equation}
+        \mu^{(2)} =  \pi R_\alpha^2 \mu^{(1)}.
+        \label{mu_2}
+    \end{equation} 
+    Odchylenie standardowe jako parametr dokładności wyników zostaje policzone jako (za jego pomocą możemy podać dokładność zgodnie z testem statystycznym):
+    \begin{equation}
+        \sigma_{\bar{S}_{\alpha,\beta}} = \sqrt{\frac{\mu^{(2)} - (\mu^{(1)})^2}{N}}
+        \label{std_dev}
+    \end{equation}
+    Podczas wykonywanego ćwiczenia pole wspólne będzie liczone losując z koła $K_\alpha$, a także $K_\beta$, co może wpłynąć na dokładność wyników. 
+
+    \section{Wyniki}
+
+    Dla generowanych punktów w kołach zostały założone wartości: 
+    \begin{itemize}
+        \item $R_\alpha =  2$,
+        \item $R_\beta = 2\sqrt{2}$,
+        \item $\vb{r_\alpha} = [x_\alpha, 0]$,
+        \item $\vb{r_\beta} = [0,0] $,
+    \end{itemize}
+    $x_\alpha$ jest parametrem i będzie zmieniany w zależności od przeprowadzanego doświadczenia numerycznego.
+
+    \subsection*{Test generatora}
+
+    Dla testu wygenerowano $N = 10000$ punktów w dwóch kołach. 
+    Parametr $x_\alpha$ został ustawiony na $R_\alpha + R_\beta$.
+    Wygenerowane punkty zostały przedstawione na rys. \ref{fig:test_2}. 
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.6\textwidth]{../gallery/2_test.png}
+        \caption{$N = 10^4$ punktów wygenerowanych w każdym kole. $x_\alpha = R_\alpha + R_\beta$.}
+        \label{fig:test_2}
+    \end{figure}
+    
+    \noaka Wygenerowane koła są do siebie styczne i nie mają części wspólnej.
+    Zgodnie z oczekiwaniami, powierzchnia części wspólnej wynosi $0$. 
+    Na podstawie analizy jakościowej, można stwierdzić, że rozkład w kole jest zbliżony do jednorodnego.
+
+    \subsection*{Koła częściowo się przekrywające}
+
+    Wygenerowane koła się przekrywają, tak że wartość parametru $x_\alpha$ została ustawiona na $R_\beta + 0.5 R_\alpha$.
+    Milion wygenerowanych pseudolosowo punktów w każdym kole zostało przedstawionych na rys. \ref{fig:ac_circ}.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.6\textwidth]{../gallery/a_c_circ.png}
+        \caption{$N = 10^6$ punktów wygenerowanych w każdym kole. $x_\alpha = R_\beta + 0.5R_\alpha $.}
+        \label{fig:ac_circ}
+    \end{figure}
+    
+    \noaka Koła przekrywają się w taki sposób, że szerokość części wspólnej wynosi $0.5R_\alpha$. 
+    Prostym wnioskiem jest także fakt, że powierzchnia koła $K_\beta$ jest większa, co skutkuje mniejszą gęstością wylosowanych punktów.
+    Dlatego więcej punktów z koła $K_\alpha$ znalazło się w części wspólnej, niż punktów z koła $K_\beta$.
+    Wyniki dla obliczeń pola części wspólnej metodą Monte Carlo były zapisywane dla $\{10^k: k \in \{2,3,4,5,6\}\}$ losowań i przedstawione na rys. \ref{fig:ac_mc}.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.6\textwidth]{../gallery/a_c.png}
+        \caption{Wartości pola wspólnego wraz z niepewnościami dla $x_\alpha = R_\beta + 0.5R_\alpha$, gdy: (a) losowane są punkty z koła $K_\alpha$, (c) losowane są punkty z koła $K_\beta$.}
+        \label{fig:ac_mc}
+    \end{figure}
+
+    \noaka Widoczne jest, że losowanie z koła o większym polu $K_\beta$ generuje większe niepewności i generalnie wolniej zbiega do wartości dokładnej.
+    Oczywiście, aby udowodnić tą tezę należałoby wykonać całą serię eksperymentów numerycznych.
+    Proste rozumowanie jednak prowadzi do wniosku, że większa gęstość wygenerowanych punktów oznacza większą liczbę punktów w części wspólnej.
+    Generując punkty z mniejszego koła istnieje też większe prawdopodobieństwo, że wylosowany punkt będzie należał do części wspólnej.
+
+    \subsection*{Koła całkowicie się przekrywające}
+
+    W drugim przypadku obydwa koła miały ten sam środek ($x_\alpha = 0$), przez co w całości się pokrywają. 
+    Koło $K_\alpha$ należy do koła $K_\beta$. Wygenerowane punkty zostały przedstawione na rys. \ref{fig:bd_circ}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.6\textwidth]{../gallery/b_d_circ.png}
+        \caption{$N = 10^6$ punktów wygenerowanych w każdym kole. $x_\alpha =0 $.}
+        \label{fig:bd_circ}
+    \end{figure}
+
+    \noaka Ponownie można zauważyć, że większa gęstosć punktów (na jednostkę powierzchni) jest w mniejszym kole. 
+    Ponadto każdy punkt należący do pola mniejszego, należy także do pola większego.
+    W tym przypadku obliczenie pola wspólnego jest proste i polega na obliczeniu pola $K_\alpha$.
+    Wyniki obliczeń zostały przedstawione na rys. \ref{fig:bd_mc}.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.6\textwidth]{../gallery/b_d.png}
+        \caption{Wartości pola wspólnego wraz z niepewnościami dla $x_\alpha = 0$, gdy: (b) losowane są punkty z koła $K_\alpha$, (d) losowane są punkty z koła $K_\beta$.}
+        \label{fig:bd_mc}
+    \end{figure}
+
+    \noaka Prostym wnioskiem jest, że dla losowania punktów z koła $K_\alpha$ uzyskiwana jest od razu wartość dokładna.
+    Wynika to z faktu, że funkcja $\theta$ będzie zawsze przyjmowała wartość 1. 
+    Przez to wartość sumy w równaniu \eqref{mu_1} będzie równa $N$, a całe wyrażenie będzie zawsze wynosiło $\pi R_\alpha^2$.
+    Z kolei wartość drugiego momentu wyrażonego zwykłego wzorem \eqref{mu_2} będzie w takim razie wynosić kwadrat tej wielkości $(\pi R_\alpha^2)^2$.
+    Dwa kwadraty się wykasują podczas obliczania odchylenia standardowego zgodnie z \eqref{std_dev}.
+
+    \newpage
+
+    \section{Podsumowanie}
+
+    Na podstawie uzyskanych wyników można postawić tezę, że mniejszy okrąg stanowi lepsze ograniczenie do losowania punktów.
+    Przez to większa ilość punktów będzie generowana w części wspólnej, tak jak w metodzie eliminacji.
+    Dodatkowo warto się także zastanowić, czy używanie metody Monte Carlo ma sens. 
+    W przypadku kół się przekrywających znana jest dokładna odpowiedź.
+    Uzyskanie jej w sposób obliczeniowy stanowi jedynie metodę weryfikacji sposobu liczenia.
+
+\end{document}

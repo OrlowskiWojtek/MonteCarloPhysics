@@ -1,0 +1,305 @@
+\documentclass[a4paper, 12pt]{article}
+
+\input{~/Desktop/Studia/LaTeX/setup.tex}
+\usepackage{amsmath}
+
+
+\author{Wojciech Orłowski}
+\date{\today}
+\title{\textsc{Monte Carlo: symulacja rozpraszania fotonów w ośrodku częściowo
+		przeźroczystym}\\ - sprawozdanie}
+
+
+\definecolor{LightCyan}{rgb}{0.88,1,1}
+	
+\begin{document}
+	\maketitle
+	
+	\section*{Wstęp}
+	
+	Podstawowym zagadnieniem elektrodynamiki jest propagacja fali elektromagnetycznej.
+	W klasycznym przypadku opis propagacji fali elektromagnetycznej opisuje układ równań Maxwella- czterech równań różniczkowych cząstkowych. 
+	Rozwiązywanie tego układu równań jest ciężkie obliczeniowo, a zwykle się wykonuje za pomocą odpowiedniej dyskretyzacji w czasie i skorzystania z metody różnic skończonych (FDTD - finite differences time domain).
+	Na symulowany układ nakładane są pewne makroskopowe wielkości (zespolona stała dielektryczna, magnetyczna itp.), wynikające z struktury materiału. 
+	Metody te jednak nie radzą sobie najlepiej z ośrodkami mętnymi, w których następuję odbicie od cząsteczek zawieszonych w zawiesinie oraz są bardzo wymagające obliczeniowo.
+	Ciekawą alternatywą jest wykorzystanie metody Monte Carlo propagacji fotonów.
+	\\
+	\\
+	Traktując zagadnienie propagacji światła jako zagadnienie poruszania się fotonów (nie oddziałujących z sobą) można interpretować absorpcję i rozpraszanie jako zjawiska stochastyczne.
+	W tym celu trzeba zdefiniować sposób działania propagacji fotonów w ośrodku
+	Dla makroskopowych współczynników takich jak współczynniki absorpcji ($\mu_a$) oraz współczynniki rozpraszania ($\mu_s$) definiuje się całkowity współczynnik oddziaływania z układem.
+	\[ \mu_{tot} = \mu_a + \mu_s. \]
+	Prawdopodobieństwo, że foton nie ulegnie interakcji z układem jest większe dla mniejszego współczynnika $\mu_{tot}$. 
+	Dlatego określamy prawdopodobieństwo, że na drodze $s$ nie dojdzie do rozproszenia/absorpcji jako
+	\[ P(x < s) = \exp(-\mu_{tot}\cdot s). \] 
+	Można rozponać danę prawdopobieństwo jako dystrybuantę rozkładu eksponencjalnego, z czego wynika, że rozkład drogi swobodnej jest zadany przez wyrażenie:
+	\[ s = -\frac{\ln(U_1)}{\mu_{tot}}, \; \; \; U1 \sim U(0,1)\] 
+	Po propagacji fali w konkretnym kierunku należy rozważyć efekty absorpcji i rozpraszania.
+	W początkowej wiązce istnieje współczynnik określający frakcję istniejącej cząstki (na początku wynosi po prostu $w = 1$).
+	Po absorpcji i rozproszeniu z początkowej frakcji cząstki usuwana jest pewna jej część.
+	Pozostała część wiązki jest propagowana w zmienionym kierunku.
+	Część wiązki jaka jest absorbowana jest obliczana na podstawie parametrów układu:
+	\[ 
+		\Delta w = \frac{\mu_a}{\mu_a + \mu_s};
+		 \; \; \; 
+		 w \rightarrow w - \Delta w 	
+	\] 
+	Dodatkowo w dwuwymiarowej tablicy przechowywana jest informacja o ilościach zaabsorbowanej wiązki w danym miejscu.
+	Po absorpcji wiązki jej pozostała część zmienia kierunek propagacji.
+	Aby ustalić w jaki sposób wiązka zmienia kierunek propagacji skorzystano z rozkładu rozproszenia Henyey’a-Greenstein’a: 
+	\[ f(\theta) =  \frac{1}{4\pi} \frac{1 - g^2}{(1+g^2 - 2g \cos\theta)^{3/2}}, \]
+	gdzie $g$ jest pewnym makroskopowym współczynnikiem nazywanym współczynnikiem anizotropii. 
+	Pozwala on określić losową wartość kosinusa kąta rozpraszania za pomocą wzorów:
+	\begin{equation}
+		\cos\theta = 
+		\begin{cases}
+			\frac{1}{2g}\left[1 + g^2 - \left(\frac{1-g^2}{1 - g + 2gU_1}\right)\right], \; \; U_1 \sim U(0,1) & g \neq 0, \\ 
+			2U_1 - 1, \; \; U_1 \sim U(0,1) & g = 0.
+		\end{cases}
+	\end{equation}
+	Ostatnim aspektem jaki jest brany pod uwagę są zjawiska na granicy ośrodków. 
+	Gdy wiązka przechodzi przez granicę ośrodków należy sprawdzić zjawiska takie jak:
+	\begin{itemize}
+		\item Całkowite wewnętrzne odbicie.
+		\\ Występuje dla współczynników załamania światła $n_i$, $n_s$ oraz kąta padania większemu od kąta krytycznego 
+		\begin{equation}
+			\alpha_i^{\text{critical}} = \arcsin\frac{n_s}{n_i}.
+		\end{equation}
+		Wówczas wiązka pozostaje całkowicie odbita i jej kierunek propagacji w kierunku $y$ zostaje obrócony.
+		\item Odbicie i przejście przez granicę faz.
+		\\
+		Zgodnie z prawem Snella znając współczynniki załamania światła dwóch materiałów tworzących interfejs ($n_i,n_s$) oraz kąt padania wiązki ($\alpha_i$) jesteśmy w stanie określić kąt pod którym wiązka przechodzi ($\alpha_s$)
+		\[n_i \sin(\alpha_i) = n_s\sin(\alpha_s). \]
+		Wiemy także, że wiązka odbija się pod takim samym kątem, pod jakim pada.
+		W celu obliczenia części wiązki, jaka ulega odbiciu obliczany jest współczynnik odbicia z wzorów Fresnela \eqref{fresnel}.
+		\begin{equation}
+			R_s = \left|\frac{n_1\cos\theta_i - n_2\cos\theta_t}{n_1\cos\theta_i + n_2\cos\theta_t}\right|^2, \; \; \; ; \; \; \; 
+			R_p = \left|\frac{n_1\cos\theta_t - n_2\cos\theta_i}{n_1\cos\theta_t + n_2\cos\theta_i}\right|^2,
+			\label{fresnel}
+		\end{equation} 
+		gdzie $R_s$ i $R_p$ to współczynniki odbicia dla wiązki o polaryzacji $s$ (TE - transverse electric) i $p$ (TM - transverse magnetic). 
+		W badanym przypadku nie korzystamy z wiązki spolaryzowanej, dlatego została wzięta średnia z dwóch wyrażeń
+		\begin{equation}
+			R = \frac{1}{2} \left[\frac{\sin^2(\alpha_i-\alpha_s)}{\sin^2(\alpha_i+\alpha_s)} + \frac{\tan^2(\alpha_i-\alpha_s)}{\tan^2(\alpha_i+\alpha_s)}\right]
+		\end{equation}
+		W symulacji nie dzielono wiązki, tylko przejście jest uzależnione w sposób losowy, co po uśrednieniu da taki sam efekt:
+		\begin{equation}
+			U_1 \sim U(0,1) \rightarrow \begin{cases}
+				U_1 \leq R  & - \text{odbicie wiązki},\\
+				U_1 > R & - \text{wiązka w całości przechodzi}.
+			\end{cases}
+		\end{equation}
+		\item Kasowanie wiązki
+		\\ 
+		Aby nie tracić czasu na propagację wiązki o bardzo małej frakcji (wadze) jest ona traktowana schematem ruletki - jest ona kasowana lub wzmacniana. 
+		\begin{verbatim}
+			if(w < 10^-4){
+				p_amp = 0.1
+				U1 = rand()
+				if(U1 <= p_amp){
+					w = w / p_amp // (wzmocnienie cząstki)
+				}else{
+					w = 0 // (kasowanie cząstki)
+				}
+			}
+		\end{verbatim}
+	\end{itemize}
+	
+	\noindent Całość ćwiczenia została wykonana z użyciem przygotowanej klasy \texttt{PHOTON$\_$DIFFUSION$\_$2D} implementującej przedstawiony algorytm.
+
+	\section*{Wyniki}
+	
+	Podczas ćwiczenia przetestowane zostało działanie algorytmu dla kilku parametrów warstw w układzie trójwarstwowym. 
+	Podstawowe parametry symulacji zostały przedstawione w tabeli \ref{tab:params}.
+	
+	\begin{table}[H]
+	\centering
+	\caption{Podstawowe parametry symulacji.}
+	\label{tab:params}
+		\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+			\hline
+			\rowcolor{LightCyan}
+			$nlayers$ & $x\_max$ & $x\_source$ & $dx\_source$ & $x\_detect$ & $dx\_detect$ & $nx/ny$ & $rx/ry$ & $N$ \\ \hline
+			3 & 0.2 & 0.1 & 0.0 & 0.15 & 0.01 & 100 & 0.0 & 200000 \\   
+			\hline  
+		\end{tabular}
+	\end{table}
+	
+	\noindent Natomiast podstawowe parametry materiałowe warstw zostały przedstawione w tabeli \ref{tab:lay_params}
+	\begin{table}[H]
+		\centering
+		\caption{Podstawowe parametry materiałowe każdej z warstw.}
+		\label{tab:lay_params}
+		\begin{tabular}{|c|c|c|c|c|c|}
+			\hline
+			\rowcolor{LightCyan}
+			$m$ & $\mu_a$ [1/cm] & $mu_s$ [1/cm] & $d$ [cm] & g [-] & n[-] \\ \hline
+			1 & 1 & 10 & 0.02 & 0.75 & 1.3 \\ \hline
+			2 & 1 & 190 & 0.02 & 0.075 & 1.0 \\ \hline
+			3 & 10 & 90 & 0.02 & 0.95 & 1.0 \\
+			\hline  
+		\end{tabular}
+	\end{table}
+	
+	\noindent Przedstawione parametry będą się zmieniać w zależności od przeprowadzanych obliczeń.
+	
+	
+	\subsection*{Odbicia wewnętrzne}
+	
+	W pierwszych obliczeniach ustawiono $rx = 0.8$ oraz $ry = 0.6$ w celu zaobserwowania odbić od kolejnych warstw. 
+	Dla kolejnych obliczeń zmieniano parametry warstw zgodnie z tabelą \ref{tab:task2}
+	
+	\begin{table}[H]
+		\caption{Zmiany parametrów warstw w kolejnych obliczeniach.}
+		\label{tab:task2}
+		\centering
+		\begin{tabular}{|c|c|c|c|}
+			\hline
+			\rowcolor{LightCyan}
+			nr. & $n_1$ & $n_2$ & $\mu_{s2}$ \\ \hline
+			1 	& -		& 1.5	& - \\ \hline
+			2	& - 	& 2.5	& - \\ \hline
+			3	& 1.0 	& 1.5	& - \\ \hline
+			4 	& 1.0	& 1.5	& 10 \\ \hline
+		\end{tabular}
+	\end{table}
+	
+	\noindent Wyniki obliczeń zostały przedstawione na rys. \ref{fig:task2_calc}.
+	
+	\begin{figure}[H]
+		\centering
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/task2_0.pdf}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/task2_1.pdf}
+			\caption{}
+		\end{subfigure}
+		\\
+				\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/task2_2.pdf}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/task2_3.pdf}
+			\caption{}
+		\end{subfigure}
+	\caption{Wyniki propagacji wiązki fotonów dla parametrów podstawowych z zmianami z tabeli \ref{tab:task2}: (a) $n_2$ = 1.5, (b) $n_2$ = 2.5, (c) $n_1$ = 1.0, $n_2$ = 1.5 (d) $n_1$ = 1.0, $n_2$ = 1.5, $\mu_{s2}$ = 10. Na każdym z wykresów przedstawione: u góry - skumulowana transmisja, na dole - skumulowane odbicie, w środku - skumulowana absorpcja podczas propagacji.}
+	\label{fig:task2_calc}
+	\end{figure}
+	 
+	\noindent Analizując powyżej przedstawione układy można stwierdzić ważne wnioski.
+	W pierwszym przypadku (rys. \ref{fig:task2_calc}(a)) różnica współczynników załamania światła była zbyt mała i nie zaszło całkowite wewnętrzne odbicie w żadnym z przypadków.
+	Duże i wyraźne odbicia możemy zauważyć w przypadkach, gdzie różnica między współczynnikami była największa - (b), (c), (d). 
+	W przypadku (a) duża część światła rozproszyła się wstecz, jednak nie zauważono z pomiarów absorpcji dużej wiązki odbitej.  
+	Dla obliczeń przedstawionych w podpunktach (b) i (d) bardzo wyraźna wiązka została odbita, co można zaobserwować na dolnych wykresach przedstawiających skumulowany promień odbity.
+	To co można zauważyć na rys. (d) to zwiększona ilość absorpcji ścieżek w ostatniej warstwie. 
+	Wynika to bezpośrednio z zmniejszenia wartości współczynnika rozpraszania. 
+	Przy mniejszym rozpraszaniu duża część wiązki pozostaje spójna i dociera do detektora w jednej wiązce, co skutkuje dużym maksimum na detektorze.
+	W tym samym przypadku duża część odbitej od interfejsu między drugą a trzecią warstwą powraca do detektora odbicia, przez co widzimy dwa piki na detektorze odbicia.
+	Nie obserwujemy natomiast większego, pojedynczego piku na detektorze odbicia w przypadku (b). 
+	Może to wynikać z względnie dużej absorpcji, jaka zachodzi w pierwszej warstwie.
+	
+	\newpage
+	
+	\subsection*{Wiązka padająca prostopadle}
+		
+	W drugiej serii obliczeń wiązka światła padała pod kątem prostym na interfejs tzn. $rx~=~0; \; ry~=~1$.
+	Zmiany parametrów warstw w kolejnych obliczeniach zostały przedstawione w tabeli \ref{tab:task3}
+	
+	\begin{table}[H]
+		\caption{Zmiany parametrów warstw w kolejnych obliczeniach.}
+		\label{tab:task3}
+		\centering
+		\begin{tabular}{|c|c|c|c|c|c|}
+			\hline
+			\rowcolor{LightCyan}
+			nr. & $n_1$ & $n_2$ & $\mu_{a2}$ & $\mu_{s2}$ & $g_2$ \\ \hline
+			5 	& -		& -		& -  & -   & \\ \hline
+			6	& 1.0 	& 1.5	& 10 & 210 & - \\ \hline
+			7	& 1.0 	& 1.5	& 1  & 210 & - \\ \hline
+			8 	& 1.0	& 1.5	& 10 & 210 & 0.75 \\ \hline
+		\end{tabular}
+	\end{table}
+	
+	\noindent Wyniki przeprowadzonych obliczeń zostały przedstawione na rys. \ref{fig:task3_calc}
+		
+	\begin{figure}[H]
+		\centering
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/task3_0.pdf}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/task3_1.pdf}
+			\caption{}
+		\end{subfigure}
+		\\
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/task3_2.pdf}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/task3_3.pdf}
+			\caption{}
+		\end{subfigure}
+		\caption{Wyniki propagacji wiązki fotonów dla parametrów podstawowych z zmianami z tabeli \ref{tab:task3}: (a) brak zmian  (b) $n_1$ = 1.0, $n_2$ = 1.5, $\mu_{a2}$ = 10, $\mu_{s2}$ = 210, (c) $n_1$ = 1.0, $n_2$ = 1.5, $\mu_{a2}$ = 1, $\mu_{s2}$ = 210 (d) $n_1$ = 1.0, $n_2$ = 1.5, $\mu_{a2}$ = 10, $\mu_{s2}$ = 210, $g_2$ = 0.75. Na każdym z wykresów przedstawione: u góry - skumulowana transmisja, na dole - skumulowane odbicie, w środku - skumulowana absorpcja podczas propagacji.}
+		\label{fig:task3_calc}
+	\end{figure}	
+	
+	\noindent Analizując wiązkę padającą w taki sposób należy zaznaczyć, że może ona niepoprawnie przedstawiać niektóre aspekty zagadnienia propagacji fali.
+	Wiązka odbite od różnych warstw interferują z sobą przez co mogą się wzmacniać lub osłabiać, co ma bezpośredni wpływ na skumulowane odbicie dla danej długości fali.
+	Należy też zwrócić uwagę na wyrównaną skalę kolorów na każdym z rysunków. 
+	Zostało to zrobione w celu lepszego ich porównania, jednak rysunki te znaczącą się różnią w innych skalach kolorów, przez co ciężko je dokładnie porównywać.
+	Na pierwszym z rysunków (\ref{fig:task3_calc}(a)) wiązka się rozprasza delikatnie, przez co w zakumulowanej transmisji widoczna jest szeroka krzywa. 
+	Na samym środku układu jest pik, świadczący o niecałkowitym rozproszeniu wiązki.
+	Duża część wiązki ulega absorpcji już w pierwszej warstwie, na bocznym krańcu. 
+	W drugim przypadku (\ref{fig:task3_calc}(b)) zmiana współczynników załamania światła, absorpcji oraz rozpraszania spowodowała rozpraszanie się dużej części wiązki w drugiej warstwie, a właściwie na granicy między drugą, a pierwszą warstwą. 
+	Można to zaobserwować poprzez zwiększoną absorpcję w większej części drugiej warstwy. 
+	Patrząc na liczbowe wartości skumulowanej transmisji można stwierdzić, że nieznacznie mniej wędrowców dotarło do detektora.
+	Część wiązki pozostała ponownie spójna.
+	Zmniejszając ponownie współczynnik absorpcji (\ref{fig:task3_calc}(c)) uzyskano wynik podobny do początkowego.
+	Wiązka była częściowo spójna, co można zauważyć przez zakumulowaną transmisje. 
+	Większa część wiązki odbiła się bezpośrednio od pierwszego interfejsu i wróciła do absorbera. 
+	Mniejsza część wiązki uległa absorpcji na ścianach układu.
+	W ostatnim z badanych przypadków (\ref{fig:task3_calc}(d)) ponownie widać bardziej rozmytą absorpcję w drugiej warstwie.
+	W porównaniu z układem (b) zmieniony został tylko współczynnik anizotropii mający wpływ na kierunek rozproszenia.
+	Widoczna jest zmiana rozkładu absorpcji w drugiej warstwie - w przypadku $b$, gdzie współczynnik anizotropii wynosił 0.075 duża część wiązki ulegała absorpcji przy interfejsie z pierwszą warstwą, to znaczy często ulegała rozproszeniu wstecz.
+	Gdy zwiększono współczynnik anizotropii większa część wiązki ulega absorpcji przy interfejsie z trzecią warstwą, co świadczy o większym rozproszeniu wprzód.  
+	\\
+	\\
+	W celu weryfikacji działania obliczeń, dla każdego przypadku sprawdzony został warunek 
+	\[\frac{T + A + R}{N} = 1,\]
+	czyli suma wiązek przetransportowanych, zaabsorbowanych i odbitych musi być równa jeden. 
+	Wartości te lekko odbiegały od siebie, jednak były bardzo bliskie jedności:
+	\begin{verbatim}
+	1 - Suma składowych wynosi: 0.9999999764065
+	2 - Suma składowych wynosi: 0.9999999780509999
+	3 - Suma składowych wynosi: 0.9999999851275749
+	4 - Suma składowych wynosi: 0.9999998685105
+	5 - Suma składowych wynosi: 0.9999997396624001
+	6 - Suma składowych wynosi: 1.0000002314603
+	7 - Suma składowych wynosi: 0.9999998872143999
+	8 - Suma składowych wynosi: 1.00000002279705
+	\end{verbatim}
+	Co potwierdza poprawne wykonanie obliczeń.
+	
+	\section*{Podsumowanie}
+	
+	Metoda Monte Carlo w symulowaniu wiązki przechodzącej przez ośrodki mętne jest metodą bardzo wydajną i wydaje się mieć duże zastosowania.
+	Poza jej celem, czyli układami medycznymi o trudnej geometrii, nadaje się również do innych układów mętnych.
+	Ciekawą modyfikacją tej metody mogłoby być uwzględnienie fazy fotonu oraz jego energii. 
+	Zabieg ten pozwoliłby na interferencje fotonów, co pozwoliłoby na badanie układów periodycznych, czy wykorzystujących zjawiska interferencji np. siatki dyfrakcyjne.	
+		
+		
+\end{document}
+

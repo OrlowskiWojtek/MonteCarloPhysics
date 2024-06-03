@@ -1,0 +1,407 @@
+\documentclass[a4paper, 12pt]{article}
+
+\input{/home/linuxwojtek/Desktop/Studia/LaTeX/setup.tex}
+
+\title{\textsc{Monte Carlo: symulacja procesu Wienera, wyznaczanie \\ współczynnika dyfuzji, symulacja procesu dyfuzji i absorpcji} \\ sprawozdanie}
+\author{Wojciech Orłowski}
+\date{\today}
+
+
+\begin{document}
+	\maketitle
+	
+	\section*{Wstęp}
+	
+	Rozważmy dyfuzję układu jednowymiarowego i równanie opisujące taki proces \eqref{diff}
+	
+	\begin{equation}
+		\pdv{u(x,t)}{t} = D \pdv[2]{u(x,t)}{x},
+		\label{diff}
+	\end{equation}
+	gdzie $D$ oznacza współczynnik dyfuzji, a $u(x,t)$ jest funkcją rozkładu lub stężenia w przestrzeni, na przykład rozkładu cząstek w przestrzeni.
+	Rozwiązując równanie z narzuconym warunkiem początkowym w postaci \eqref{dirac}
+	\begin{equation}
+		u(x = x_0,t=0) = \delta(x - x_0), 
+		\label{dirac}
+	\end{equation}
+	gdzie $\delta(x-x_0)$ oznacza dystrybucję delty Diraca, można dojść do rozwiązania postaci \eqref{sol}
+	\begin{equation}
+		u(x,t) = \frac{1}{\sigma_t \sqrt{2\pi}} \exp(-\frac{(x-x_0)^2}{2\sigma_t^2}),
+		\label{sol}
+	\end{equation}
+	gdzie $\sigma_t = \sqrt{2Dt}$. Rozwiązaniem tego równania jest zatem modulowany czasem rozkład normalny cząstek. Taki sam rozkład uzyskamy, gdy ewolucja cząstki będzie przebiegać z procesem stochastycznym Wienera \eqref{wiener}, to znaczy:
+	\begin{equation}
+		X_i(t + \delta t) = X_i(t) + \Delta X; \; \; \; \; \Delta X \sim N(0,\delta t)
+		\label{wiener}
+	\end{equation}
+	Czyli każda zmiana położenia cząstki jest losowana za pomocą rozkładu normalnego, określonego funkcją gęstości prawdopodobieństwa \eqref{fgp} (zakładając $\Delta x = x - x_0$)
+	\begin{equation}
+		f(\Delta x,\Delta t) = \frac{1}{\sigma_{\Delta t}\sqrt{2\pi}} \exp(- \frac{\Delta x^2}{2\sigma_{\Delta t}^2}), \; \; \; \sigma_{\Delta t} = \sqrt{2D\Delta t}
+		\label{fgp}
+	\end{equation} 
+	Znając z kolei rozkład przestrzenny cząstek w czasie można spróbować określić (wcześniej narzucone) współczynniki dyfuzji w każdym z kierunków
+	\begin{gather}
+		D_{xx} = \frac{\expval{x^2(t)} - \expval{x(t)}^2}{2t}, \\
+		D_{yy} = \frac{\expval{y^2(t)} - \expval{y(t)}^2}{2t},
+	\end{gather}
+	oraz współczynnik $D_{xy}$ będący współczynnikiem określającym korelacje między rozkładami w kierunkach $x$ oraz $y$
+	\begin{equation}
+		D_{xy} = \frac{\expval{x(t)y(t)} - \expval{x(t)}\expval{y(t)}}{2t}.
+	\end{equation}
+	Wartości $\expval{x(t)}$, $\expval{y(t)}$, $\expval{x(t)^2}$, $\expval{y(t)^2}$, oraz $\expval{x(t)y(t)}$ to momenty zwykłe, estymowane za pomocą poniższych wzorów
+	\begin{gather}
+		\expval{x(t)} = \frac{1}{n} \sum_{i=1}^{n} X_i(t) \\ 
+		\expval{y(t)} = \frac{1}{n} \sum_{i=1}^{n} Y_i(t) \\
+		\expval{x(t)^2} = \frac{1}{n} \sum_{i=1}^{n} X_i^2(t) \\ 
+		\expval{y(t)^2} = \frac{1}{n} \sum_{i=1}^{n} Y_i^2(t) \\
+		\expval{y(t)x(t)} = \frac{1}{n} \sum_{i=1}^{n} Y_i(t)X_i(t) 
+	\end{gather} 
+	Wartości współczynnika dyfuzji są zależne od czasu oraz jako proces stochastyczny obarczone pewną niepewnością. Dlatego w celu uzyskania jednej wartości niezależnej od czasu dokonać można uśredniania w pewnym odcinku czasowym $(t_a;t_b)$
+	\begin{equation}
+		\expval{D_{\alpha \beta}^m} \approx \frac{1}{N_t} \sum_{k=1}^{N_t} D_{\alpha \beta}^m(t_k),
+		\label{diff_coefs_mean} 
+	\end{equation}
+	gdzie $N_t$ to ilość punktów czasowych $t_k$ w odcinku czasowym $(t_a,t_b)$. Aby oszacować odchylenie standardowe korzystamy z wzoru \eqref{std_dev}
+	\begin{equation}
+		\sigma_{\expval{D_{\alpha \beta}}} = \sqrt{\frac{\expval{D_{\alpha \beta}^2} - \expval{D_{\alpha \beta}}^2}{N_t}}. 
+		\label{std_dev}
+	\end{equation}
+	
+	\noaka \krecha
+	
+	\noaka Drugim badanym problemem był proces dyfuzji w układzie zamkniętym. 
+	Do takiego układu wprowadzane były cząstki z źródła o wydajności
+	\begin{equation}
+		\omega = \frac{\Delta n}{\Delta t}.
+	\end{equation}
+	W takim układzie $\Delta n$ właściwie oznacza maksymalną liczbę cząstek, jaką może wydać źródło w czasie $\Delta t$.
+	Następnie cząstki ulegają dyfuzji z schematem Wienera, z tą różnicą, że są one zamknięte w układzie o kształcie koła.
+	Cząstka odbija się od ściany zgodnie z prawem 
+	odbicia.
+	Jeżeli trajektoria cząstki natrafi na absorber (o promieniu $R_a$) zostaje pochłonięta. 
+	Odbicie cząstki oraz jej absorpcja zostały zaimplementowane w programie za pomocą funkcji dostarczonej przez prowadzącego zajęcia:
+	\begin{verbatim}
+		void particle_translation(double & x1,double & y1, double & x2,double & y2, 
+		double xr,double yr, double Rr, double xa,double ya, double Ra, 
+		int & exist ,double & length)
+	\end{verbatim}
+	
+	\newpage
+	
+	\section*{Wyniki}
+	
+	\subsection*{Układ otwarty (proces Wienera)}
+	
+	W zadanym problemie należało zbadać dyfuzje cząstek w układzie otwartym, a następnie obliczyć odpowiednie współczynniki dyfuzji dla różnych ilości cząstek w układzie otwartym.
+	Dyfuzja cząstek była badana dla różnej ich ilości. Położenie początkowe cząstek zostało ustawione na (0,0).
+	Położenia cząstek w kilku czasach symulacji dla każdej z liczby cząstek zostały przedstawione na rys. \ref{1_loc}
+	
+	\begin{figure}[H]
+		\centering
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/diff_times_N=100.png}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/diff_times_N=1000.png}
+			\caption{}
+		\end{subfigure}
+		\\
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/diff_times_N=10000.png}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/diff_times_N=100000.png}
+			\caption{}
+		\end{subfigure}
+		\caption{Położenia cząstek w 1.0 s, 5.0 s oraz 20.0 s od początku symulacji dla (a) 100 cząstek (b) 1000 cząstek (c) 10000 cząstek (d) 100000 cząstek.}
+		\label{1_loc}
+	\end{figure}
+	
+	\noaka Dla większej ilości cząstek, można zauważyć wysokie podobieństwo między wykonywaną symulacją, a modulowanym rozkładem normalnym. 
+	Dla 100 cząstek nie można wskazać konkretnych wniosków, niektóre cząstki zdążyły bardzo szybko się przemieścić, nawet w czasie jednej sekundy.
+	Warto w takich symulacjach stosować większą liczbę próbek, w celu zwiększenia pewności danych statystycznych.
+	Obliczone współczynniki dyfuzji w każdej chwili czasowej zostały przedstawione na rys. \ref{diff_coefs}.
+	\begin{figure}[H]
+	\centering
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/D_N=100.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/D_N=1000.png}
+		\caption{}
+	\end{subfigure}
+	\\
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/D_N=10000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/D_N=100000.png}
+		\caption{}
+	\end{subfigure}
+	\caption{Obliczone współczynniki dyfuzji $D_{xx}$, $D_{yy}$ oraz $D_{xy}$ w różnych chwilach czasowych dla (a) 100 cząstek (b) 1000 cząstek (c) 10000 cząstek (d) 100000 cząstek.}
+	\label{diff_coefs}
+\end{figure}
+
+\noaka Dla małej liczby cząstek można zauważyć duże fluktuacje między wartościami właściwymi (1 oraz 0).
+Fluktuacje tego typu, przypominające szum są typowe dla obliczeń stochastycznych. 
+Dla większej ilości próbek są one dużo gładsze.
+Dla 100000 cząstek współczynniki dyfuzji $D_{xx}$ oraz $D_{yy}$ szybko osiągają wartość dokładną, zadaną w programie oraz równą jeden, a współczynnik korelacji $D_{xy}$ szybko wskazuje na brak korelacji między kierunkami $x$ i $y$.
+\\
+\\
+Dla całego ciągu danych współczynników dyfuzji można obliczyć konkretne wartości uśredniając wartość współczynnika po całym zakresie oraz szacując niepewność zgodnie z wzorami \eqref{diff_coefs_mean} oraz \eqref{std_dev}.
+Przybliżone wartości dla każdej ilości cząstek wyniosły:
+\begin{verbatim}
+			N = 100
+			====Diffusion coefficients values===
+			D\_xx: 0.89317 std. err.: 0.00294913
+			D\_yy: 0.911995 std. err.: 0.00379536
+			D\_xy: -0.0712799 std. err.: 0.0015523
+			====================================
+			
+			N = 1000
+			====Diffusion coefficients values===
+			D\_xx: 1.00779 std. err.: 0.00156458
+			D\_yy: 0.950738 std. err.: 0.000616031
+			D\_xy: 0.0405798 std. err.: 0.000542106
+			====================================
+			
+			N = 10000
+			====Diffusion coefficients values===
+			D\_xx: 0.999638 std. err.: 0.000374029
+			D\_yy: 1.00111 std. err.: 0.000258967
+			D\_xy: 0.00490585 std. err.: 0.000214109
+			====================================
+			
+			N = 100000
+			====Diffusion coefficients values===
+			D\_xx: 0.998716 std. err.: 7.57354e-05
+			D\_yy: 0.999415 std. err.: 9.74718e-05
+			D\_xy: -0.00327316 std. err.: 8.63936e-05
+			====================================
+\end{verbatim} 
+Zgodnie z oczekiwaniami wartości odchyleń maleją wraz z wzrostem ilości symulowanych cząstek.  Odchylenie standardowe średniej powinno maleć proporcjonalnie do pierwiastka z liczby próbek. Podobną zależność można tutaj zaobserwować. Dokonując aproksymacji algorytmem Levenberga-Marquadta można się przekonać, że uzyskane odchylenia standardowe spełniają tą zależność (rys. \ref{fit})
+	
+\begin{figure}[h]
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../jl_analasysis/std_dxx.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../jl_analasysis/std_dyy.png}
+		\caption{}
+	\end{subfigure}
+	\caption{Aproksymowane krzywe wraz z naniesionymi odchyleniami wynikającymi z obliczeń.}
+	\label{fit}
+\end{figure}
+
+	
+\newpage
+	
+\subsection*{Układ zamknięty - źródło i absorbent}
+	
+W badanych przypadkach ustalone zostały różne parametry źródła ($\omega \in \{10; 50; 100\}$)i absorbera ($R_a \in \{0.1;0.5\}$). Rozkład cząstek w kilku chwilach symulacji w zależności od zadanych parametrów został przedstawiony na rys. \ref{rozklad_ra1}
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=100om=10ra=0.100000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=1000om=10ra=0.100000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=5000om=10ra=0.100000.png}
+		\caption{}
+	\end{subfigure}
+	\\
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=100om=50ra=0.100000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=1000om=50ra=0.100000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=5000om=50ra=0.100000.png}
+		\caption{}
+	\end{subfigure}
+	\\
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=100om=100ra=0.100000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=1000om=100ra=0.100000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=5000om=100ra=0.100000.png}
+		\caption{}
+	\end{subfigure}
+	
+	\caption{Rozkład cząstek w czasie $t=10$ (a),(d),(g); $t=100$ (b),(e),(h); $t=500$ (c),(f),(i) dla $R_a = 0.1$ oraz źródła $\omega = 10.0$ (a),(b),(c); $\omega = 50.0$ (d),(e),(f) oraz $\omega = 100$ (g),(h),(i). Niebieskim kolorem zaznaczone źródło, czerwonym absorber.}
+	\label{rozklad_ra1}
+\end{figure}
+
+\noaka Zwiększenie wydajności źródła znacznie zwiększa ilość cząstek w danej chwili czasowej. Widać też, że położenie absorbera wpływa mało znacząco na rozkład przestrzenny cząstek, jednak jest ich mniej po stronie absorbera. Może to wynikać z położenia źródła po lewej stronie układu. Podobny rozkład przestrzenny jednak dla większego absorbera został przedstawiony na rys. \ref{rozklad_ra2}
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=100om=10ra=0.500000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=1000om=10ra=0.500000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=5000om=10ra=0.500000.png}
+		\caption{}
+	\end{subfigure}
+	\\
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=100om=50ra=0.500000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=1000om=50ra=0.500000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=5000om=50ra=0.500000.png}
+		\caption{}
+	\end{subfigure}
+	\\
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=100om=100ra=0.500000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=1000om=100ra=0.500000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.30\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/it=5000om=100ra=0.500000.png}
+		\caption{}
+	\end{subfigure}
+	
+	\caption{Rozkład cząstek w czasie $t=10$ (a),(d),(g); $t=100$ (b),(e),(h); $t=500$ (c),(f),(i) dla $R_a = 0.5$ oraz źródła $\omega = 10.0$ (a),(b),(c); $\omega = 50.0$ (d),(e),(f) oraz $\omega = 100$ (g),(h),(i). Niebieskim kolorem zaznaczone źródło, czerwonym absorber.}
+	\label{rozklad_ra2}
+\end{figure}
+ 
+ \noaka Po zwiększeniu promienia absorbera można zauważyć spadek ilości cząstek w prawej stronie układu. Zagęszczenie cząstek w pobliżu źródła zmalało, jednak nie tak znacząco. Wykresy zależności całkowitej ilości cząstek od iteracji zostały przedstawione na rys. \ref{n_od_it}
+ 
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}{0.4\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/n_for_om=10ra=0.100000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.4\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/n_for_om=50ra=0.100000.png}
+		\caption{}
+	\end{subfigure}
+	\\
+	\begin{subfigure}{0.4\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/n_for_om=100ra=0.100000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.4\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/n_for_om=10ra=0.500000.png}
+		\caption{}
+	\end{subfigure}
+	\\
+	\begin{subfigure}{0.4\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/n_for_om=50ra=0.500000.png}
+		\caption{}
+	\end{subfigure}
+	\begin{subfigure}{0.4\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../plots/task_2/n_for_om=100ra=0.500000.png}
+		\caption{}
+	\end{subfigure}
+	\caption{Całkowita ilość cząstek w układzie w zależności od iteracji dla $R_a = 0.1$ (a),(b),(c); $R_a = 0.5$ (d),(e),(f); $\omega = 10$ (a),(d); $\omega = 50$ (b),(e); $\omega = 100$ (c),(f).}
+	\label{n_od_it}
+\end{figure}
+
+\noaka Po pewnym czasie dla każdego z przypadków ilość cząstek w układzie ulega stabilizacji i fluktuuje wokół pewnej wartości.
+Dla największej wydajności źródła i najmniejszego promienia absorbera po pewnym czasie w układzie jest maksymalna ilość cząstek. 
+Stan równowagi jaki jest osiągany w układzie zależy bezpośrednio od jego parametrów - im większa wydajność źródła tym więcej cząstek, a czym większy promień to mniej cząstek po stabilizacji.
+Wydaje się, że istnieje liniowa zależność między wydajnością źródła a ilością cząstek w układzie. 
+Można to zauważyć na przykładzie układu z większym absorberem (tabela \ref{tab1}).
+\begin{table}[h]
+	\caption{Ilość cząstek w układzie w zależności od wydajności źródła dla większego promienia absorbera.}
+	\label{tab1}
+	\centering
+	\begin{tabular}{|c|c|}
+		\hline
+		$\omega$ & $n$ po stabilizacji \\ \hline
+		10 & 500 \\ \hline
+		50 & 2500 \\ \hline
+		100 & 5000 \\ \hline
+	\end{tabular}
+\end{table}
+Można zatem postulować, że w przypadku największej wydajności źródła dla $R_a = 0.1$ ilość cząstek w układzie po stabilizacji powinna wynosić około 12000 cząstek (co jest większe od maksymalnej dozwolonej ilości cząstek).
+\\
+\\
+Ciekawym faktem też jest zależność występujących fluktuacji w zależności od $\omega$.
+Dla większej wydajności źródła w układzie jest więcej cząstek, które ciężej ulegają fluktuacją i dostarczają lepszą informacje statystyczną. 
+\\
+\\
+Zwiększając promień absorbera pięciokrotnie zmniejszamy ilość cząstek w układzie o ponad połowę.
+Dla najmniejszych wydajności źródła ilość cząstek zmalała z około 1200 do około 500. 
+Ilość cząstek w układzie powinna być bezpośrednio zależna od powierzchni absorbera, która w tym przypadku wzrosła 25-krotnie. 
+Natomiast ilość cząstek zmalała około 2.4-krotnie. 
+Aby znaleźć dokładniejszą zależność między powierzchnią absorbera a ilością cząstek w układzie po stabilizacji należałoby wykonać większą liczbę eksperymentów Monte Carlo.
+
+\section*{Podsumowanie}
+
+Za pomocą prostego procesu stochastycznego (procesu Wienera) jesteśmy w stanie dokonywać symulacji dyfuzji w układzie.
+W wykonywanych obliczeniach nie brano pod uwagę oddziaływań między cząsteczkami, jednak udało się uzyskać ciekawe wyniki, zarówno w procesie otwartym jak i zamkniętym.
+Obliczenia te jednak są ściśle zależne od ilości cząstek w symulacji, co można zauważyć po obliczonych odchyleniach standardowych.
+Zwiększenie ilości symulowanych obiektów znacząco wydłuża czas symulacji, nawet nie biorąc pod uwagę oddziaływań międzycząsteczkowych.
+
+	
+\end{document}
+

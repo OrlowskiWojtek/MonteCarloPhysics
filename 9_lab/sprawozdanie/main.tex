@@ -1,0 +1,266 @@
+\documentclass[a4paper, 12pt]{article}
+
+\input{~/Desktop/Studia/LaTeX/setup.tex}
+
+\author{Wojciech Orłowski}
+\date{\today}
+\title{\textsc{Monte Carlo: Rozwiązywanie równania Poissona na siatce metodą błądzenia przypadkowego}\\ - sprawozdanie}
+
+
+\begin{document}
+	\maketitle
+	
+	\section*{Wstęp}
+	
+	Rozwiązywanie równań różniczkowych jest jednym z głównych zadań metod numerycznych.
+	Za pomocą równań różniczkowych jesteśmy w stanie stworzyć model pewnego zjawiska fizycznego.
+	Aby szybko i sprawnie rozwiązywać zwyczajne równania różniczkowe zostały opracowane metody przykładowo Rungego-Kutty (np. RK4).
+	Rozwiązywanie równań cząstkowych jest bardziej skomplikowanym zagadnieniem.
+	Dla większości równań pochodzących z klasycznej fizyki matematycznej znamy osobne schematy pozwalające szybko rozwiązać dany typ równania.
+	Tak za pomocą metody różnic skończonych i odpowiednich schematów relaksacyjnych można rozwiązać równanie Poissona opisujące między innymi rozkład potencjału w obszarze z zadanymi warunkami brzegowymi.
+	Rozłożenie przestrzeni na dyskretną siatkę jest cięższe w przypadkach o skomplikowanej geometrii.
+	Dlatego warto zastanowić się nad algorytmami stochastycznymi, będącymi alternatywą dla tego typu metod.
+	
+	\subsection*{Metoda różnic skończonych, nadrelaksacja lokalna}
+	
+	Równanie Poissona znane w klasycznej fizyce matematycznej ma postać
+	\begin{equation}
+		\nabla^2 V(\vb{r}) = - \frac{\varrho(\vb{r})}{\varepsilon},
+	\end{equation}
+	gdzie $V(\vb{r})$ oznacza rozkład potencjału w przestrzeni, a $\varrho(\vb{r})$ to rozkład ładunku w przestrzeni. Zakładamy, że współczynnik przenikalności dielektrycznej $\varepsilon$ jest stały w badanym obszarze, jednak w ogólności może on także być zależny od położenia.
+	Operator różniczkowy $\nabla^2$ w problemie dwuwymiarowym można zapisać jako
+	\begin{equation}
+		\nabla^2V(x,y) = \pdv[2]{V(x,y)}{x}+\pdv[2]{V(x,y)}{y}.
+	\end{equation}
+	W następnym etapie ilorazy różniczkowe przybliżane są ilorazami różnicowymi
+	\begin{equation}
+		\nabla^2V(x,y) \approx \frac{V_{i+1,j}  - 2V_{i,j} + V_{i-1,j}}{\Delta^2} + \frac{V_{i,j+1}  - 2V_{i,j} + V_{i,j-1}}{\Delta^2}, \label{diff}
+	\end{equation}
+	gdzie indeksy $i,j$ oznaczają położenie zgodnie z dyskretyzacją $[i\cdot\Delta;j\cdot\Delta] \rightarrow [i,j]$, a $\Delta$ jest krokiem przestrzennym między węzłami (tutaj założony równy krok w kierunkach $x$ i $y$). 
+	Podstawiając \ref{diff} do równania Poissona i przenosząc wyrazy tak, aby $V_{i,j}$ został sam na jednej stronie równania otrzymano
+	\begin{equation}
+		V_{i,j} = \frac{1}{4}\left( V_{i+1,j} + V_{i-1,j} + V_{i,j+1} + V_{i,j-1} + \frac{\Delta^2\varrho_{i,j}}{\varepsilon}\right).
+	\end{equation}
+	Takie równanie można rozwiązać metodami algebraicznymi czy schematami relaksacyjnymi. 
+	W schemacie nadrelaksacji lokalnej dokonujemy wielokrotnie uśrednień na całej tablicy $V_{i,j}$ zgodnie z wzorem
+	\begin{equation}
+		V_{i,j} = (1-\omega)V_{i,j} + \frac{\omega}{4} \left( V_{i+1,j} + V_{i-1,j} + V_{i,j+1} + V_{i,j-1} + \frac{\Delta^2\varrho_{i,j}}{\varepsilon}\right),
+	\end{equation}
+	gdzie $\omega$ jest parametrem relaksacji, w przypadku nadrelaksacji przyjmującym wartości większe od jedności.
+	W celu estymacji tempa zmian obliczany jest funkcjonał energii 
+	\begin{equation}
+		F = \int_{\Omega} \left(\frac{1}{2} \vb{E}^2 - \rho V \right) \dd^2r,
+	\end{equation}
+	a obliczenia są zatrzymywane, gdy względna zmiana funkcjonału energii jest mniejsza od pewnej wielkości.
+	
+	\subsection*{Algorytm błądzenia Monte Carlo na siatce prostokątnej}
+	
+	W algorytmie od każdego punktu rozpoczynany jest ciąg losowy położenia \textit{wędrowca}. 
+	Wędrowiec może poruszać się po prostokątnej siatce.
+	Jeżeli wędrowiec dojdzie do punktu, który stanowi warunek brzegowy Dirichleta (stała wartość w punkcie), to jest on absorbowany i ustalana jest wartość potencjału w punkcie startowym odpowiadająca wartości na brzegu.
+	Aby uwzględnić wpływ od ładunku wędrowiec \textit{zbiera} ładunek podczas drogi. 
+	Warunki brzegowe Von Neumanna są realizowane poprzez odbicie wędrowca od ściany.
+	Ostateczna wartość potencjału w punkcie jest uśrednieniem wartości po wielu ścieżkach. 
+	\begin{equation}
+		V_{i_0,j_0} = \frac{1}{N} \sum_{l=1}^{N} \left[V^{(l)}(x_{end},y_{end}) + \sum_{p=1}^{d_l-1}  \frac{\Delta^2 \varrho_{i_p,j_p}}{4\varepsilon} \right] = \frac{1}{N} \sum_{l = 1}^{N} \Delta V^{(l)},
+	\end{equation}
+	gdzie $d_l$ jest długością $l$-tego ciągu, a $V^{(l)}(x_{end},y_{end})$ jest wartością uzyskaną podczas absorpcji.
+	Odchylenie standardowe jest obliczane jako pierwiastek z różnicy pierwszego i drugiego momentu zwyczajnego (wartości oczekiwanej i wartości oczekiwanej kwadratu) uzyskanych po wielu ścieżkach.
+	\begin{equation}
+		V_{i_0,j_0}^{(2)} = \frac{1}{N} \sum_{l=1}^N (\Delta V_l)^2,
+	\end{equation}
+	\begin{equation}
+		\sigma_{i_0,j_0} = \sqrt{\frac{V_{i_0,j_0}^{(2)} - V_{i_0,j_0}^2}{N}}
+	\end{equation}
+	
+	\newpage
+	
+	\section*{Wyniki i wnioski}
+
+	W zadaniu przyjęto 3 ściany stanowiące warunek brzegowy Dirichleta oraz 1 ścianę stanowiącą warunek brzegowy Von Neumanna. 
+	Wartości potencjałów w warunkach Dirichleta mają postać
+	\begin{gather}
+		V(0,y) = V_l \sin(\frac{\pi y}{ny \cdot \Delta}),
+		\\
+		V(x,0) = V_b \sin(\frac{\pi x}{nx \cdot \Delta}),
+		\\
+		V(x,y_{max}) = V_t \sin(\frac{\pi x}{nx \cdot \Delta}).
+	\end{gather}
+	Natomiast przyjęty rozkład ładunku ma postać 
+	\begin{equation}
+		\varrho(x,y) = \rho_{max} \exp\left[-\frac{(\vb{r} - \vb{r_{max}}/2)^2}{2\sigma_p^2}\right]
+	\end{equation}
+	W ćwiczeniu przyjęto parametry
+	\[nx = ny = 30; \; \Delta = 0.1; \; V_l = 1; \; V_t = V_b = -1; \; \varepsilon = 1; \; \rho_{max} = 1; \; \sigma_p = x_{max}/10 \]
+	Dla metody relaksacji przyjęto parametr $\omega = 1.8$ oraz wykonano obliczenia stanowiące porównanie dla obliczeń metodą Monte Carlo.
+	Rozkład potencjału uzyskany za pomocą techniki relaksacji lokalnej został przedstawiony na rys. \ref{local_relax}
+	
+	\begin{figure}[h]
+		\centering
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/relaxation.svg}
+			\caption{}		
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/relaxation_smooth.svg}
+			\caption{}		
+		\end{subfigure}
+		\caption{Rozkład potencjału uzyskany przez relaksacje lokalną (a) uzyskane zdyskretyzowane wyniki na siatce, (b) wyniki po interpolacji wygładzającej wykres.}
+		\label{local_relax}
+	\end{figure}
+	
+	\noindent Zbieżność uzyskano po 70 iteracji ,a czas obliczeń dla podanych parametrów wyniósł 0.028649 sekundy.
+	
+	\subsection*{Wersja początkowa}
+	
+	W pierwszej części zadania ustalono maksymalną długość każdego łańcucha równą 100 oraz ilość łańcuchów do uśredniania również równą 100.
+	Warunki brzegowe nie są nadpisywane w żaden sposób. Wyniki obliczeń zostały przedstawione na rys. \ref{task_1}.
+		\begin{figure}[h]
+		\centering
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/100_100Vmc.svg}
+			\caption{}		
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/100_100Vdiff.svg}
+			\caption{}		
+		\end{subfigure}
+		\\
+				\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/100_100chain_map.svg}
+			\caption{}		
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/100_100stddiff.svg}
+			\caption{}		
+		\end{subfigure}
+		\caption{Wyniki uzyskane schematem stochastycznym. (a) Rozkład potencjału po obliczeniach, (b) różnica potencjału obliczonego metodą Monte Carlo i obliczonego schematem relaksacyjnym, (c) mapa rozkładu zaabsorbowanych łańcuchów, (d) obliczone odchylenie standardowe.}
+		\label{task_1}
+	\end{figure}
+	Analizując wyniki, można stwierdzić, że nie są one bardzo dokładne. Wartości różnicy potencjałów sięgają nawet 0.7, co stanowi prawie połowę zakresu zbioru wartości. Wynik kształtem przypomina rozwiązanie dokładne, jednak jest ono bardzo zaburzone i zaszumione.
+	Patrząc na mapę ułamka zaabsorbowanych łańcuchów (rys. \ref{task_1}(c)) można zaobserwować, że z środka badanego obszaru mało łańcuchów uległo \textit{absorpcji}.
+	Duża ilość obliczeń zatem nie miała wpływu na wynik.
+	Z samego brzegu obszaru praktycznie wszystkie rozpoczęte łańcuchy zostały zaabsorbowane.
+	Odchylenie standardowe jest bardzo wysokie w samym środku obszaru, co wynika prawdopodobnie z małej ilości zaabsorbowanych łańcuchów.
+	Zarówno różnica potencjałów (między wynikiem stochastycznym a dokładnym) jak i odchylenie standardowe są wysokie w obszarach o dużych tempach zmian wartości potencjału, czyli tam gdzie jest duża wartość bezwzględna z pochodnych.
+	Może to nie wynikać bezpośrednio z dużego tempa zmian, lecz z faktu, iż punkt położony na przekątnej obszaru znajdującej się w lewej części mapy ma zarówno duże prawdopodobieństwo natrafienia na brzeg o wysokim i niskim potencjale. 
+	Warto też zauważyć, że jeden punkt w środku obszaru ma wartość dodatnią potencjału w przeciwieństwie do punktów wokół.
+	Ten sam punkt ma najwyższą wartość odchylenia standardowego, zatem jest duże prawdopodobieństwo, że bardzo mało łańcuchów zostało zaabsorbowane z tego punktu.
+	Czas obliczeń w trzech osobnych przejściach wyniósł (obliczony za pomocą makra \texttt{@time} w języku \julia):
+	\begin{verbatim}
+0.991223 seconds (34.95 M allocations: 533.294 MiB, 1.93% gc time)
+0.977317 seconds (34.82 M allocations: 531.403 MiB, 1.60% gc time)
+0.994112 seconds (34.90 M allocations: 532.647 MiB, 1.50% gc time)
+	\end{verbatim}
+	czyli za każdym razem obliczenia dla tej ilości łańcuchów trwały około sekundy.
+	
+	\subsection*{Nadpisywanie warunków brzegowych}
+	
+	W celu zwiększenia sprawności algorytmu można zmienić sposób ustalania warunków brzegowych. 
+	Aby zaoszczędzić na mocy obliczeniowej i wykonywać mniejszą ilość kroków można skorzystać z obliczonych już wartości.
+	Punkt na siatce, z ustaloną wartością potencjału staje się nowym warunkiem brzegowym Dirichleta, na którym może zostać zaabsorbowany wędrowiec. 
+	W ten sposób zmniejszana jest ilość kroków wykonywana przez pojedynczego wędrowca.
+	Wyniki dla algorytmu Monte Carlo wykorzystującego 100 wędrowców każdego z maksymalną ilością ruchów równą 100, ale z aktualizacją warunków brzegowych zostały przedstawione na rys. \ref{task_2}.
+	\begin{figure}[h]
+		\centering
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/100_100_blockVmc.svg}
+			\caption{}		
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/100_100_blockVdiff.svg}
+			\caption{}		
+		\end{subfigure}
+		\\
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/100_100_blockchain_map.svg}
+			\caption{}		
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/100_100_blockstddiff.svg}
+			\caption{}		
+		\end{subfigure}
+		\caption{Wyniki uzyskane schematem stochastycznym z aktualizacją warunków brzegowych. (a) Rozkład potencjału po obliczeniach, (b) różnica potencjału obliczonego metodą Monte Carlo i obliczonego schematem relaksacyjnym, (c) mapa rozkładu zaabsorbowanych łańcuchów, (d) obliczone odchylenie standardowe.}
+		\label{task_2}
+	\end{figure}
+	Potencjał wciąż jest rozmyty, jednak jego zaszumienie zdecydowanie zmalało, a bardziej on przypomina ten dokładny, przedstawiony na rys. \ref{local_relax}(a).
+	Największe różnice widoczne są w środku obszaru, gdzie wartości bezwzględne różnicy sięgają nawet 0.4 (co stanowi 1/5 zakresu wartości).
+	Tym razem większość łańcuchów została zaabsorbowana w całej powierzchni obszaru.
+	Łańcuchy z początkiem na środku mogą w szybciej dostać się do brzegu i zostać zaabsorbowane, gdyż brzeg znajduje się bliżej.
+	Odchylenie standardowe wciąż jest wysokie w obszarach, o podobnych prawdopodobieństwie zaabsorbowania na niskim i wysokim potencjale, jednak jest ono bardzo niskie przy ścianie stanowiącej warunek brzegowy Von Neumanna.
+	Obliczenia trwały tym razem krócej, a  czasy z trzech różnych przebiegów wyniosły:
+	\begin{verbatim}
+0.158317 seconds (4.95 M allocations: 75.599 MiB, 4.59% gc time)
+0.144255 seconds (4.91 M allocations: 74.981 MiB, 1.98% gc time)
+0.151105 seconds (4.93 M allocations: 75.215 MiB, 1.04% gc time)
+	\end{verbatim}
+	Korzystając teraz z szybszej wersji metody, można wyprodukować więcej łańcuchów i nadać większą maksymalną drogę jednemu łańcuchowi.
+	
+	\subsection*{Zwiększenie ilości łańcuchów}
+	
+	W celu zwiększenia dokładności wyników zwiększono ilość łańcuchów przypadającą na jeden punkt do 300 oraz zwiększono maksymalną długość łańcucha do 300 kroków.
+	Wyniki obliczeń zostały przedstawione na rys. \ref{task_3}.
+	\begin{figure}[h]
+		\centering
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/300_300_blockVmc.svg}
+			\caption{}		
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/300_300_blockVdiff.svg}
+			\caption{}		
+		\end{subfigure}
+		\\
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/300_300_blockchain_map.svg}
+			\caption{}		
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width = \textwidth]{../plots/300_300_blockstddiff.svg}
+			\caption{}		
+		\end{subfigure}
+		\caption{Wyniki uzyskane schematem stochastycznym z aktualizacją warunków brzegowych i większą ilością łańcuchów. (a) Rozkład potencjału po obliczeniach, (b) różnica potencjału obliczonego metodą Monte Carlo i obliczonego schematem relaksacyjnym, (c) mapa rozkładu zaabsorbowanych łańcuchów, (d) obliczone odchylenie standardowe.}
+		\label{task_3}
+	\end{figure}
+	Rozwiązanie wygląda na mało zaszumione i są bardzo podobne do dokładnego. 
+	Skala odchylenia od wyniku uzyskanego metodą różnic skończonych jest dużo mniejsza. 
+	Praktycznie w każdym elemencie badanego obszaru prawie wszystkie łańcuchy zostały zaabsorbowane.
+	Miejscem o największej różnicy potencjałów jest lewa strona mapy, czyli tam gdzie cząstka może zarówno trafić na brzeg o dużym potencjale jak i na brzeg o małym potencjale. 
+	W podobnym obszarze występuje też duże odchylenie standardowe.
+	Odchylenie standardowe jest najmniejsze blisko prawej strony mapy - tam gdzie były narzucone warunki brzegowe Von Neumanna.
+	\\
+	\\
+	Ciekawym aspektem jest duża różnica między wynikiem dokładnym, a oszacowanym Monte Carlo w środku siatki obliczeniowej.
+	Może to wynikać z nagromadzających się błędów powstałych poprzez niedokładne oszacowanie nowej wartości brzegowej.
+	Czas obliczeń w trzech różnych próbach wyniósł:
+	\begin{verbatim}
+0.687492 seconds (20.22 M allocations: 308.638 MiB, 7.75% gc time)
+0.705052 seconds (20.05 M allocations: 305.901 MiB, 6.63% gc time)
+0.689908 seconds (20.04 M allocations: 305.873 MiB, 4.31\% gc time)
+	\end{verbatim}
+	Jest to znacznie wolniej niż w schemacie relaksacyjnym.
+	
+	\section*{Podsumowanie}
+	
+	Metoda stochastyczna jest metodą wolniejszą od metody różnic skończonych. 
+	Porównywana ona też była z najprostszym schematem relaksacyjnym, a są istnieją bardziej efektywne schematy, działające jeszcze szybciej, tak jakie jak metoda wielosiatkowa czy rozwiązywanie bezpośrednie algebraicznego układu równań. 
+	Metoda Monte Carlo może być szybsza w przypadku poszukiwaniu wartości potencjału tylko w jednym punkcie.
+	Również łatwiejsza do zaimplementowania będzie w przypadku trudniejszych geometrii. 
+	Są też modyfikacje tej metody ją usprawniające np. poruszanie się wędrowcem krokami o różnej długości oraz przedstawione nadpisywanie warunków brzegowych, które znacząco przyspieszyło obliczenia.
+	
+\end{document}
+

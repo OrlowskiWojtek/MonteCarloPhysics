@@ -1,0 +1,132 @@
+\documentclass[a4paper, 12pt]{article}
+
+\input{~/Desktop/Studia/LaTeX/setup.tex}
+\usepackage{amsmath}
+
+
+\author{Wojciech Orłowski}
+\date{\today}
+\title{\textsc{Monte Carlo: symulacja fali termicznej, problem Riemanna}\\ - sprawozdanie}
+
+\begin{document}
+	\maketitle
+	
+	\section*{Wstęp}
+	
+	W opisywanym problemie opisujemy fale termobaryczną za pomocą symulacji bezpośredniej gazu metodą Monte Carlo.
+	W programie skorzystano w wcześniejszego programu, użytego podczas laboratorium nr 12. 
+	Tym razem klasę \texttt{DSMC\_2D} wykorzystano w celu monitorowania propagacji fali cząstek w układzie.
+	Większą ilość cząstek o większej temperaturze umieszczono z lewej strony układu, a mniejsza ilość cząstek, mająca stanowić atmosferę, została umieszczona z prawej strony.
+	W momencie rozpoczęcia symulacji fala większej gęstości cząstek przemierza z lewej strony w prawo.
+	Fala po spotkaniu z prawym końcem obszaru obliczeniowego odbija się i propaguje dalej w drugą stronę.
+	
+	\section*{Wyniki}
+	
+	Na początku wygenerowano atomy w lewej i prawej części układu.
+	W tym celu zainicjalizowano obiekt klasy \texttt{DSMC\_2D} i wczytano odpowiednie pliki wejściowe.
+	Z lewej strony znalazło się $8 \cdot 10^5$ atomów o prędkości zgodnej z rozkładem Maxwella 2D dla temperatury 10000, a z prawej strony umiejscowiono $1 \cdot 10^5$ atomów o prędkości mniejszej, równej 300.
+	Jednostki w zadaniu zostały pominięte, ze względu na ustawienie stałej Boltzmanna na wartość równą $1$ - stworzyło to nowy układ jednostek arbitralnych. 
+	Takie ustawienie jednostek pozwoliło na zaobserwowanie fali.
+	Taka pojedyncza fala dała dużą liczbę wyników do analizy. 
+	\\
+	\\
+	Wszystkie brzegi stanowiły warunek brzegowy Neumanna - cząstki się od nich odbijały.
+	Promień cząsteczek ustawiono na $10^{-4}$ - jest to też zawyżona wartość promienia efektywnego, mający być przybliżeniem wielu cząsteczek.
+	Jeden atom w symulacji stanowi odzwierciedlenie dla wielu rzeczywistych atomów.
+	Jest to jedyny sposób aby odzwierciedlić oddziaływania rzeczywistej atmosfery, w której ilość atomów na jednostkę objętości jest rzędu stałej Avogadra (6.02 $\cdot 10^{23}$).
+	Obliczenia dla takiej ilości cząsteczek są niemożliwe do zrealizowania ze względu na aktualnie istniejącą moc obliczeniową.
+	Masa efektywna cząsteczek została ustawiona na 1.
+	\\
+	\\
+	Najpierw zostanie przeanalizowany w sposób jakościowy wygląd układu czyli rozkład cząstek w przestrzeni (rys. \ref{loc_1} oraz \ref{loc_2}).
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.9\textwidth]{../plots/pos.pdf}
+		\caption{Rozkład cząstek przed zderzeniem z prawym brzegiem.}
+		\label{loc_1}
+	\end{figure}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.9\textwidth]{../plots/pos_end.pdf}
+		\caption{Rozkład cząstek po zderzeniu z prawym brzegiem}
+		\label{loc_2}
+	\end{figure}
+	
+	\noindent Na ilustracjach przedstawiających rozkład cząstek został przedstawiony co 20 atom. 
+	Taki zabieg umożliwia lepsze zaobserwowanie gęstości cząstek w danym miejscu.
+	Ponadto wygenerowanie wysokiej jakości ilustracji wektorowej z taką ilością danych spowodowałoby powstanie pliku o bardzo dużej zajmowanej pamięci.
+	\\
+	\\
+	Na podstawie tych rysunków można stwierdzić, żę fala odbiła się od prawego brzegu w okolicy 500 - 600 iteracji, jednak nie było to zjawisko natychmiastowe, a trwające cały okres czasu.
+	Duża ilość masy poruszała się w prawą stronę, a następnie przez pewien okres czasu odbijała.
+	Po pierwszym odbiciu od prawej ścianki większa ilość cząstek znajdowała się po prawej stronie.
+	Takie zachowanie częściowo przypomina tłumiony oscylator.
+	Wiadomo, że w przypadku układu o warunkach brzegowych Neumanna ostatecznie ulegnie on stabilizacji.
+	\\
+	\\
+	Dużo lepszej analizy można dokonać za pomocą obliczonych wartości ciśnienia, temperatury, gęstości i prędkości cząsteczek.
+	Uśrednione rozkłady tych wielkości na zmiennej przestrzennej $x$ zostały przedstawione na rys. \ref{nptv_1} (początek symulacji), \ref{nptv_2} (zderzenie się z brzegiem) oraz \ref{nptv_3} (fala odbita).
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\textwidth]{../plots/nptv_301.pdf}
+		\caption{Rozkłady wielkości opisujących układ na początku symulacji.}
+		\label{nptv_1}
+	\end{figure}
+
+	\noindent W pierwszej iteracji widoczny jest równy podział na dwa obszary.
+	W lewym i prawym obszarze są stałe gęstość, temperatura oraz ciśnienie. 
+	Uśredniona prędkość jest zerowa w obu obszarach (cząstki poruszają się we wszystkie strony), poza samym środkiem obszaru symulacyjnego. 
+	Tam prędkość jest delikatnie dodatnia, co oznacza, że cząstki z bardziej zagęszczonego obszaru poruszają się w stronę mniej zagęszczonego, gdyż po prostu tam jest miejsce. 
+	W pierwszych chwilach trwania symulacji gęstość cząstek się wyrównuje na obszarze. 
+	Podobnie zachowuje się ciśnienie. 
+	Temperatura natomiast jest większa na czele fali (tam gdzie porusza się gęstość cząsteczek). 
+	Prędkość atomów jest równomiernie rozłożona na pewnym obszarze stanowiącym obszar od środka układu do czoła fali temperatury. 
+	Odpowiadać to może sytuacji, w której cząsteczki poruszając się w prawo robią \textit{miejsce}, aby cząsteczki bardziej lewej strony układu mogły się poruszyć w  prawą stronę. 
+
+	\begin{figure}[H]
+	\centering
+		\includegraphics[width=\textwidth]{../plots/nptv_701.pdf}
+		\caption{Rozkłady wielkości opisujących układ podczas i po zderzeniu z prawym brzegiem.}
+		\label{nptv_2}
+	\end{figure}
+
+	\noindent Gdy fala dociera do prawego brzegu zaczynają się tam gromadzić cząsteczki. 
+	Tak że widzimy pewne maksimum lokalne, będące nową falą poruszającą się w lewą stronę, gdyż są one \textit{wypychane} przez atomy poruszające się w prawo.
+	Takie zachowanie powoduje powstanie dużego ciśnienia w tym obszarze, podobnego do ciśnienia występującego na początku symulacji w lewej części zbiornika.
+	\\
+	\\
+	Ciekawe zachowanie wykazuje temperatura gazu, gdyż jest ona większa niż początkowa temperatura lewego zbiornika. 
+	Prędkość natomiast po zderzeniu fali z barierą ponownie się zeruje po prawej stronie od czoła fali, a jest duża na czole fali i po jej lewej stronie (czyli prawdopodobnie cząsteczki wciąż poruszające się w prawo). 
+	Jest to ciekawe i raczej nieoczywiste zachowanie. 
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\textwidth]{../plots/nptv_1801.pdf}
+		\caption{Rozkłady wielkości opisujących układ po zderzeniu z prawym brzegiem.}
+		\label{nptv_3}
+	\end{figure}
+	
+	\noindent W kolejnych iteracjach coraz większa ilość cząstek dociera do prawej strony układu, co się bezpośrednio przekłada na większą gęstość i ciśnienie cząsteczek. 
+	Na prawym brzegu duża gęstość i ciśnienie się utrzymują, aż ostatecznie zaczynają powoli spadać i się stabilizować
+	Ciekawe zachowanie można zauważyć w temperaturze, która jest jeszcze większa na prawym brzegu. 
+	Natomiast na lewym brzegu jest dużo niższa.
+	Wciąż obserwujemy potężną falę termiczną, tym razem poruszającą się w lewą stronę. 
+	\\
+	\\
+	Prędkość cząstek wykazuje dużą zależność od położenia fali, gdyż w późniejszych etapach jest ona bliska zeru na czole fali.
+	Mniej więcej od momentu, w którym czoło fali przeszło środek układu symulacyjnego prędkość zaczyna wzrastać liniowo w układzie, tak że cały czas pozostaje najmniejsza przy prawym brzegu.
+	Jednak część cząsteczek z prawego brzegu porusza się teraz prawdopodobnie w lewą stronę. 
+	
+	\section*{Podsumowanie}
+	
+	Wykonana symulacja pozwoliła sprawdzić przebieg fali termobarycznej. 
+	Zarówno poruszająca się fala ciśnienia jak i temperatury przeniosły się z jednej strony układu na drugą. 
+	Wykazały one jednak inne zachowanie w po zderzeniu się z brzegiem, gdzie temperatura znacząco wzrosła ponad jej wartość początkową w lewym brzegu.
+	Taka symulacja mimo dużego przybliżenia prawdopodobnie oddaje elementy fali termobarycznej i pokazuje jej duże możliwości.
+	Zastosowania takiej fali znajdują się najprawdopodobniej w przemyśle militarnym, gdyż jest to sposób aby zgromadzoną temperaturę i ciśnienie łatwo przetransportować.
+	Jest to po prostu wybuch o dużej mocy. 
+	
+\end{document}

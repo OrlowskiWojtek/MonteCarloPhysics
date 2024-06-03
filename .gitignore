@@ -1,0 +1,23 @@
+# c++ binaries
+*.o
+*.so
+*.exe
+*.out
+bin/
+obj/
+
+# plots and datafiles
+*.dat
+*.png
+*.svg
+
+# those long DSMC simulations
+
+data_evolution*
+
+# directiories used to store data and plots
+
+data/
+plots/
+gallery/
+tasks/
