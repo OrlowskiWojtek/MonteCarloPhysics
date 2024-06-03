@@ -1,0 +1,202 @@
+\documentclass[a4paper, 12pt]{article}
+
+\input{~/Desktop/Studia/LaTeX/setup.tex}
+\usepackage{amsmath}
+
+
+\author{Wojciech Orłowski}
+\date{\today}
+\title{\textsc{Monte Carlo: propagacja sygnału elektrycznego w linii transmisyjnej, problem zależny od czasu}\\ - sprawozdanie}
+
+
+\begin{document}
+	\maketitle
+	
+	\section*{Wstęp}
+	
+	Jednym z podstawowych zagadnień elektroniki jest opis propagacji sygnału. 
+	W linii transmisyjnej (np. linii długiej) propagację sygnału opisuje układ równań różniczkowych:
+	\begin{align}
+		\pdv{u}{x}	&= -L\pdv{i}{t} - Ri, \\
+		\pdv{i}{t}  &= -C\pdv{u}{t} - Gu.
+	\end{align}	
+	Układ ten opisuje zmiany napięcia ($u$) oraz prądu ($i$) w czasie i położeniu. Współczynniki $L,R,C,G$ to kolejno indukcyjność, opór, pojemność i konduktancja.
+	Te dwa równania różniczkowe są od siebie zależne i w celu ich rozwiązania dokonuje się transformacji
+	\begin{align}
+		f(x,t) &= \frac{1}{2} (u + R_0 i), \\
+		b(x,t) &= \frac{1}{2} (u - R_0 i) ,
+	\end{align}
+	gdzie $R_0 = \sqrt{\frac{L}{C}}$. Ważnym faktem jest zależność $f+b = u$, pozwalająca nam w końcowym etapie uzyskać z powrotem informację o napięciu. Znając zatem $f$ oraz $b$ znamy $u$ oraz $i$, zatem można rozwiązać alternatywny układ różniczkowy
+	\begin{align}
+		\pdv{f}{t} &= -c\pdv{f}{x} + \lambda b - (\lambda + \mu)f, \\
+		\pdv{b}{t} &= c\pdv{b}{x} + \lambda f - (\lambda + \mu)b, 
+	\end{align}
+	gdzie stałe są wyrażone wzorami $c = \frac{1}{\sqrt{LC}},\;\mu = \frac{G}{C},\;\lambda = \frac{1}{2}\left(\frac{R}{L} - \frac{G}{C}\right) \mu.$
+	Powyższy układ możemy zapisać w postaci układu równań całkowych:
+	\begin{align}
+		f(x,t) &= f_0(x,t) \exp(-(\lambda + \mu)t)+\frac{\lambda}{\lambda + \mu} \int_{0}^{t} (\lambda + \mu)e^{-(\lambda+\mu)s} b(x-cs,t-s)\dd s, \\
+		b(x,t) &= b_0(x,t) \exp(-(\lambda + \mu)t)+\frac{\lambda}{\lambda + \mu} \int_{0}^{t} (\lambda + \mu)e^{-(\lambda+\mu)s} f(x+cs,t-s)\dd s.
+	\end{align}
+	Na podstawie postaci funkcji $f$ i $b$ oraz ich występowania można je interpretować jako rozwiązanie poruszające się w prawą ($f$) i lewą ($b$) stronę.
+	Całki te naturalnie wyglądają jak pewien rozkład wartości z odpowiednią funkcją gęstości prawdopodobieństwa równą
+	\begin{equation}
+		p(s) = (\lambda + \mu)e^{-(\lambda+\mu)s},
+	\end{equation}	
+	która ma postać już znormalizowaną.
+	Znając odpowiednie prawdopodobieństwo można wywoływać funkcje $f$ i $b$ z określonym prawdopodobieństwem rekurencyjnie.
+	W układzie zostały nałożone warunki brzegowe (na początek układu - punkt $0$ i na koniec układu - punkt $l$):
+	\begin{itemize}
+		\item źródło napięcia o oporze własnym $R_g$,
+		\item opornik na końcu o oporze $R_l$.
+	\end{itemize}
+	Matematycznie generator nakłada na napięcie w początku układu pewną wartość
+	\begin{equation}
+		u(0,t) = V_g(t) - R_g \cdot i(0,t),
+	\end{equation}
+	gdzie $V_g(t)$ to funkcja opisująca przebieg czasowy sygnału. Na wyjściu działanie opornika zapisujemy jako
+	\begin{equation}
+		i(l,t) = \int_{-\infty}^{\infty} u(l,\tau) h(t-\tau) \dd \tau,	
+	\end{equation}
+	gdzie $h(t-\tau)$ jest odpowiedzią układu na impuls o wartości $\delta(t-\tau)/R_l$. Po wcześniej dokonanej transformacji otrzymano warunki
+	\begin{align}
+		f(0,t) &= \zeta V_g(t) + \Gamma_g b(0,t), \\
+		b(l,t) &= \Gamma_l f(l,t),
+	\end{align}
+	gdzie współczynniki są wyrażone wzorami
+	\begin{gather*}
+		R_0 = \sqrt{\frac{L}{C}}, \\
+		\zeta = \frac{R_0}{R_0 + R_g}, \\
+		\Gamma_g = \frac{R_g - R_0}{R_g + R_0}, \\
+		\Gamma_l = \frac{R_l - R_0}{R_l + R_0}.
+	\end{gather*}
+	Jeżeli rozwiązanie dojdzie do początku układ (np. po wcześniejszym odbiciu od końca) to następuje odbicie sygnału z odpowiednim współczynnikiem i dodatkiem generowanego sygnału. Na prawym brzegu również występuje odpowiednie odbicie.
+	\\
+	\\
+	W algorytmie Monte Carlo nadpisujemy wartości całek naprzemiennie zgodnie z klasycznym całkowaniem Monte Carlo. Losowana jest zmienna $s$ wraz z rozkładem eksponecjalnym, na podstawie której zmieniany jest czas i położenie.   
+	
+	\section*{Wyniki}
+	
+	Podczas ćwiczenia wykonano obliczano napięcia w linii transmisyjnej metodą Monte Carlo w różnych chwilach czasowych. 
+	Wybrane parametry ćwiczenia zostały przedstawione w tabeli \ref{tab1}.
+	\begin{table}[H]
+		\centering
+		\caption{Parametry linii ustawione w ćwiczeniu.}
+		\label{tab1}
+		\begin{tabular}{|c|c|c|c|c|c|c|}
+			\hline
+			$L$ [\textmu H] &  $C$ [pF] & $R$ [\textohm] & $G$ [mS] & $l$ [m] & $R_l$ [\textohm] & $R_g$ [\textohm] \\  
+			\hline
+			0.25 & 100 & 12.5 & 0.5 & 2 & 12.5 & 75.0 \\
+			\hline
+		\end{tabular}
+	\end{table}
+	
+	\noaka Sygnał generowany na brzegu miał postać
+	\begin{equation}
+		V_g(t) = \sin(2\pi \nu t) \exp(-\frac{(t-t_0)^2}{2\sigma^2}),
+	\end{equation}
+	gdzie parametry sygnału mają wartości przedstawione w tabeli \ref{tab2}.
+	\begin{table}[H]
+		\centering
+		\caption{Parametry sygnału ustawione w ćwiczeniu}
+		\label{tab2}
+		\begin{tabular}{|c|c|c|}
+			\hline
+			$\nu$ [GHz]  &  $t_0$ [ns] & $\sigma$ [ns] \\ \hline
+			1 & 7.5 & 0.75 \\
+			\hline
+		\end{tabular}
+	\end{table}
+	
+	\noindent Obliczenia wykonywano dla czasów $t = 10,15,25,35,50$ ns oraz $npaths = 10^3,10^4,10^5$.
+	Wyniki dla czasu $t = 10$ ns zostały przedstawione na rys. \ref{fig:10}.
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\textwidth]{../plots/whole_plots/time_10.png}
+		\caption{Wyniki obliczeń wraz z błędami dla różnej ilości ścieżek dla czasu $t = 10$ ns.}
+		\label{fig:10}
+	\end{figure}
+	
+	\noindent Obliczenia metodą Monte Carlo są zgodne z dużą dokładnością z wynikiem dokładnym. 
+	Największe błędy można zauważyć przy sygnale właściwym, to znaczy przy dużym napięciu.
+	Nawet ten błąd można wyraźnie zredukować zwiększając ilość ścieżek. 
+	W dalszych krokach czasowych sygnał będzie się odbijał od ścianek i jednocześnie zmniejszał swoją amplitudę. 
+	Dla kolejnych chwil czasowych wartości zostały przedstawione na rysunkach \ref{fig:15}, \ref{fig:25}, \ref{fig:35}, \ref{fig:50}.
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\textwidth]{../plots/whole_plots/time_15.png}
+		\caption{Wyniki obliczeń wraz z błędami dla różnej ilości ścieżek dla czasu $t = 15$ ns.}
+		\label{fig:15}
+	\end{figure}
+	
+	\noindent Po pięciu nanosekundach amplituda sygnału się nie zmniejszyła. 
+	Kształt sygnału również się nie zmienił.
+	Różnice są również tego samego rzędu wielkości.
+	Wysokie różnice są tam, gdzie jest duża amplituda fali (duże napięcie).
+	Maleją one w podobnym tempie jak wcześniej.
+	Jednak mimo podobnego rzędu wielkości, są one tym razem bardziej widoczne dla najmniejszej ilości ścieżek.
+	
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\textwidth]{../plots/whole_plots/time_25.png}
+		\caption{Wyniki obliczeń wraz z błędami dla różnej ilości ścieżek dla czasu $t = 25$ ns.}
+		\label{fig:25}
+	\end{figure}
+	
+	\noaka Po kolejnych dziesięciu sekundach obserwujemy fale już odbitą od prawego końca układu.
+	Amplituda fali zmalała, a jej kształt został zachowany. 
+	Błędy są cały czas małe, zauważalne gołym okiem tylko dla najmniejszej ilości ścieżek.
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\textwidth]{../plots/whole_plots/time_35.png}
+		\caption{Wyniki obliczeń wraz z błędami dla różnej ilości ścieżek dla czasu $t = 35$ ns.}
+		\label{fig:35}
+	\end{figure}
+	
+	\noindent Gdy fala odbiła się ponownie od początku układu jej amplituda znacznie zmalała.
+	Mimo, że wartości bezwzględne błędu bardzo się nie zmieniły, to są one bardzo widoczne dla najmniejszej ilości ścieżek oraz lekko widoczne dla 10000 ścieżek.
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\textwidth]{../plots/whole_plots/time_50.png}
+		\caption{Wyniki obliczeń wraz z błędami dla różnej ilości ścieżek dla czasu $t = 50$ ns.}
+		\label{fig:50}
+	\end{figure}
+	
+	\noindent Dla czasu 50 ns obserwujemy falę już po wielu odbiciach, której amplituda zmalała już wielokrotnie. 
+	Błędy bezwzględne zmalały znacząco, jednak porównując wyniki są one bardziej zaszumione niż wcześniej.
+	Zatem błąd względny wzrósł. 
+	Jesteśmy w stanie zauważyć niedokładności dla obliczeń z największą ilością ścieżek.
+	\\
+	\\
+	Poza zwiększającym się błędem względnym wraz z czasem trwania symulacji obliczenia też trwają coraz dłużej.
+	Można łatwo sprawdzić, że czas obliczeń rośnie liniowo wraz z czasem trwania symulacji.
+	Dla całego zestawu obliczeń (tj. dla $10^3$, $10^4$ oraz $10^5$ łańcuchów - czyli właściwie dla 111000 łańcuchów) czasy obliczeń w zależności od czasu propagacji fali zostały przedstawione na rys. \ref{fig:times}.
+	
+	\begin{figure}[H]
+		\centering
+		\includesvg[width=0.6\textwidth]{../plots/times.svg}
+		\caption{Czas obliczeń wraz z dopasowaną prostą.}
+		\label{fig:times}
+	\end{figure}
+	
+	\noaka Co się zgadza z teorią analityczną zagadnienia, według której koszt obliczeniowy jest wprost proporcjonalny do $t$:
+	\begin{equation}
+		C \approx N\frac{t}{\expval{s}},
+	\end{equation}
+	gdzie $N$ to liczba wygenerowanych ścieżek, a $\expval{s} = \frac{1}{\lambda + \mu}$. 
+	
+	\section*{Podsumowanie}
+	
+	Algorytm stochastyczny rozwiązania tego problemu stanowi świetną alternatywę dla metod różnic skończonych.
+	Pozwala on znaleźć w wartość napięcia w każdym miejscu i czasie, niezależnie od innych obliczeń.
+	Oznacza to, że aby poznać wartość napięcia w punkcie $x_0$ nie potrzeba znać wartości napięcia w żadnych innych punktach.
+	W metodach siatkowych zawsze rozwiązuje się problem dla całego zestawu wartości.
+	Ponadto rozwiązanie otrzymujemy z dużą dokładnością, którą w prostu sposób można zwiększyć.
+	Algorytm ma też potencjał do łatwego zrównoleglenia obliczeń.
+	
+	
+\end{document}
+

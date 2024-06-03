@@ -1,0 +1,15 @@
+# c++ binaries
+*.o
+*.so
+*.exe
+*.out
+
+# plots and datafiles
+*.dat
+*.png
+
+# directiories used to store data and plots
+
+data/
+plots/
+

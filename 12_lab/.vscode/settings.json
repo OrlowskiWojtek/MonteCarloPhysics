@@ -1,0 +1,20 @@
+{
+    "files.associations": {
+        "cmath": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "*.tcc": "cpp",
+        "cstdint": "cpp",
+        "string": "cpp",
+        "vector": "cpp",
+        "random": "cpp",
+        "type_traits": "cpp",
+        "fstream": "cpp",
+        "iomanip": "cpp",
+        "iosfwd": "cpp",
+        "iostream": "cpp",
+        "istream": "cpp",
+        "limits": "cpp",
+        "ostream": "cpp"
+    }
+}

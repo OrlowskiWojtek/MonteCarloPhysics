@@ -1,0 +1,646 @@
+\documentclass[a4paper,12pt]{article}
+
+\input{"~/Desktop/Studia/LaTeX/setup.tex"}
+\usepackage{svg}
+
+\author{Wojciech Orłowski}
+\title{\textsc{Monte Carlo: modelowanie struktury fullerenów metodą
+		symulowanego wyżarzania} \\ sprawozdanie}
+\date{\today}
+
+\begin{document}
+	
+	\maketitle
+	
+	\section*{Wstęp}
+	
+	Klasyczna dynamika molekularna to dział fizyki (czy chemii) komputerowej zajmujący się badaniem dynamiki cząsteczek za pomocą komputerowych symulacji.
+	W takich obliczeniach zakłada się, że atomy/cząsteczki generują pewien znany potencjał, zwykle dobrany tak, aby dla pewnych przypadków dało się odwzorować wyniki doświadczalne.
+	Najpopularniejszym sposobem przeprowadzania symulacji klasycznej dynamiki molekularnej jest rozwiązywanie równania ruchu (z drugiej zasady dynamiki Newtona) za pomocą schematu Verleta.
+	Takie algorytmy pozwalają też na znajdywanie minimum energetycznego dla ułożeń atomów w pojedynczych cząsteczkach i strukturach periodycznych.
+	W ćwiczeniu została użyta metoda symulowanego wyżarzania w celu minimalizacji energii w strukturze fullerenów. 
+	
+	\subsection*{Metoda symulowanego wyżarzania}
+	
+	W metodzie tej wybierane jest losowe położenie pojedynczej cząstki. 
+	Dla nowego, proponowanego położenia cząstki obliczana jest energia, która jest porównywana z energią poprzedniego ułożenia cząstek.
+	Nowe położenie cząstki wybierane jest z prawdopodobieństwem zależnym od różnicy energii - nowej i poprzedniej:
+	\begin{equation}
+		p_{\textbf{acc}} = \min\left\{1,\exp(- \frac{E_{\text{old}} - E_{\text{new}}}{kT})\right\},
+	\end{equation}
+	gdzie $kT$ jest stałą Boltzmanna wymnożoną przez temperaturę, czyli w naszym przypadku pewnym parametrem balansującym prawdopodobieństwem akceptacji.
+	W ćwiczeniu wprowadzono parametr $\beta = \frac{1}{kT}$, który zmieniał się wraz z iteracjami zgodnie z wzorem
+	\begin{equation}
+		\beta = \beta_{min} + \left(\frac{it}{it_{max}}\right)^p (\beta_{max} - \beta_{min}),
+	\end{equation}
+	gdzie $p$ jest parametrem opisującym sposób zmian parametru $\beta$ wraz z iteracjami. 
+	Jeżeli $\beta$ jest małe, to występuje duże prawdopodobieństwo, że zostanie zaakceptowane nowe położenie.
+	Taki zabieg pozwala opuszczać minima lokalne w wczesnych etapach symulacji, tak aby ostatecznie znaleźć minimum globalne układu.
+	
+	\subsection*{Potencjał Brennera}
+	
+	Najważniejszym etapem symulacji klasycznej dynamiki molekularnej jest odpowiedni wybór potencjału.
+	W przypadku ćwiczenia wybrany został potencjał Brennera, który może uwzględnić liczbę wiązań tworzonych przez atom.
+	Wiemy, że w atomy węgla w fullerenach tworzą maksymalnie 3 wiązania.
+	Ponadto potencjał Brennera może dobrze opisywać konfiguracje przestrzenne dla obu hybrydyzacji ($sp^3$ oraz $sp^2$) atomów węgla.
+	\\
+	\\
+	W układzie całkowitą energię potencjalną rozumiemy jako połowę sumy energii wszystkich atomów:
+	\begin{equation}
+		V_{tot} = \frac{1}{2}\sum_{i=1}^{n} V_i,
+	\end{equation}
+	przemnożenie przez jedną drugą ma na celu zniwelowanie podwójnego uwzględniania oddziaływania. 
+	Potencjał od pojedynczego atomu ma postać sumy oddziaływania z najbliższymi atomami
+	\begin{equation}
+		V_i = \sum_{\substack{j = 1 \\ j \neq i}}^{n} f_{\text{cut}}(r_{ij})\left[ V_R(r_{ij}) + \overline{B}_{ij}V_A(r_{ij}) \right].
+		\label{vi}
+	\end{equation}
+	W powyższym wyrazie $f_{\text{cut}}$ oznacza funkcję odcięcia, czyli funkcję ograniczającą wagę atomów branych w obliczeniach w zależności od odległości między atomami. Ma ona postać:
+	\begin{equation}
+		f_{\text{cut}} = 
+		\begin{cases}
+			1, & r \leq R_1 \\ 
+			\frac{1}{2}\left[1 + \cos(\frac{r - R_1}{R_2 - R_1} \pi)\right], & R_1 < r \leq R_2 \\
+			0, & r > R_2
+		\end{cases}
+	\end{equation}
+	$R_1, \, R_2$ są parametrami potencjału, a $r$ jest odległością między atomami. Jeżeli odległość między atomami jest większa od $R_2$ (zwanego także promieniem odcięcia) obliczenia dalszych oddziaływań między atomami nie są wykonywane.
+	Pozostałe wyrazy w \eqref{vi} odpowiadają za potencjały przyciągania ($V_A$) i odpychania ($V_R$). 
+	Opisane są one wzorami:
+	\begin{gather}
+		V_R(r) = \frac{D_e}{S - 1} \exp(-\sqrt{2S}\lambda\left(r - R_0\right)), \\
+		V_A(r) = \frac{D_eS}{S - 1} \exp(-\sqrt{2/S}\lambda\left(r - R_0\right)),
+	\end{gather}
+	gdzie $D_e, S, \lambda$ oraz $R_0$ są parametrami potencjału.
+	Wyraz $\overline{B}$ stanowi pewną wagę potencjału przyciągania. 
+	Za pomocą tego potencjału jesteśmy w stanie sterować krotnością wiązania.
+	\begin{equation}
+		B_{ij} = \left(1 + \zeta_{ij} \right)^{-\delta},
+	\end{equation}
+	$\delta$ jest parametrem potencjału, a $\zeta_{ij}$ jest zależne bezpośrednio od kąta między wiązaniami
+	\begin{gather}
+		\zeta_{ij} = \sum_{\substack{k = 1 \\ k \neq i,j}} f_{\text{cut}} g(\theta_{ijk}),\\
+		g(\theta_{ijk}) = a_0\left[1 + \frac{c_0^2}{d_0^2} - \frac{c_0^2}{d_0^2 + (1 + \cos(\theta_{ijk}))^2}, \right]
+	\end{gather} 
+	$a_0$, $c_0$ oraz $d_0$ to parametry potencjału. 
+	Dla badanego problemu parametry potencjału zostały ustawione na
+\[	
+	\begin{array}{|c|c|c|c|c|c|c|c|c|c|}
+		\hline
+		R_0 [\text{\AA}] & R_1 [\text{\AA}] & R_2 [\text{\AA}] & D_e [\text{eV}] & S & \lambda [\text{\AA}^{-1}] & \delta & a_0 & c_0 & d_0 \\ \hline
+		1.315 & 1.70 & 2.00 & 6.325 & 1.29 & 1.5 & 0.080469 & 0.011304 & 19 & 2.5 \\ \hline
+	\end{array}
+\]	
+	\subsection*{Funkcja korelacji par}
+	
+	W celu zmierzenia działania optymalizacji w sposób ilościowy użyto funkcji korelacji par (pair correlation function - pcf). 
+	Określa ona odległość atomów od siebie na histogramie.
+	Jest ona liczona za pomocą:
+	\begin{gather}
+		\Delta r = \frac{2.5 \cdot r_{avg}}{M}\\
+		p(m) = \frac{8\pi r_{avg}^2}{n^2} \frac{\sum_{i = 1}^{n} \sum_{j = i+1}^{n} \delta_{m,k}}{2\pi r_m \Delta r} \\ 
+		k = floor\left(\frac{r}{\Delta r}\right) 
+	\end{gather}
+	
+	\section*{Wyniki}
+	
+	\subsection*{Obliczanie energii}
+	
+	W pierwszym etapie ćwiczenia została obliczona energia struktury podanej przez prowadzącego. 
+	Obliczenie tej energii miało na celu sprawdzenie poprawności wykonywanych rachunków, gdyż łatwo byłoby znaleźć w całej procedurze błąd.
+	Struktura o optymalnej energii, podana przez prowadzącego została przedstawiona na rys. \ref{test_fulleren}.
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width=0.7\textwidth]{../plots/test_fulleren.png}
+		\caption{Zoptymalizowany fulleren; struktura podana przez prowadzącego.}
+		\label{test_fulleren}
+	\end{figure}
+	W takiej strukturze węgiel tworzy wiązania tylko potrójne, tak że ściany fullerenu są sześcio i pięciokątami. 
+	Kąty między atomami węgla są zatem równe $120^\circ$.
+	Obliczona energia wyniosła:
+	\begin{verbatim}
+		energia wynosi: -421.622853705101 eV
+	\end{verbatim}
+	co się zgadza z energią podaną przez prowadzącego. 
+	Przy poprawnym obliczaniu energii można przejść do algorytmu symulowanego wyżarzania i optymalizacji struktury.
+	
+	\subsection*{Zadanie 3}
+	
+	W celu znalezienia optymalnej struktury fulerenów ustalono parametry optymalizacji:
+	
+	\[
+	\begin{array}{|c|c|c|c|c|c|c|c|c|c|}
+		\hline
+		n & \beta_{min} & \beta_{max} & p  & it_{max}  & w_r & w_\phi & w_\theta  & W_{all} & r_{start} \left[\text{\AA}\right] \\ \hline
+		60 & 1.0 & 100 & 2 & 10^5 & 10^{-4} & 0.05 & 0.05 & 10^{-4} & 3.5 \\ \hline 
+ 	\end{array}
+	\]
+	gdzie $w_r, w_\phi, w_\theta, W_{all}$ to wagi odpowiadające za wielkość kroku w odpowiednim kierunku. Struktura początkowa została wyznaczona za pomocą losowych kątów $\theta$ oraz $\phi$ dla każdego atomu, jednak dla stałej odległości od środka układu równej $r_{start}$.
+	\begin{figure}[H]
+		\centering
+		\begin{subfigure}{0.49\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task3_random_start.png}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task3_after_optim.png}
+			\caption{}
+		\end{subfigure}
+		\caption{(a) Początkowa struktura losowa, niezoptymalizowana, (b) końcowa struktura zoptymalizowana.}
+	\end{figure}
+	
+	\noindent Po zakończeniu obliczeń otrzymano energię:
+	\begin{verbatim}
+Końcowa energia wynosi: -365.8125596851834 eV
+	\end{verbatim}	
+	co jest dalekie od wyniku poprawnego (-421.6 eV). 
+	Atomy węgla tworzą wiele wiązań, tak, że ściany fulerenów często są trójkątami i kwadratami. 
+	W rzeczywistości powinny być one pięciokątami i sześciokątami. 
+	Można znaleźć takie atomy węgla, które tworzą 5 wiązań, co jest niezgodne z najbardziej optymalnymi fullerenami.
+	W obliczeniach parametr $\beta$ i energia zmieniały się w sposób przedstawiony na wykresie \ref{task3_beta}
+	
+	\begin{figure}[H]
+		\centering
+		\includesvg[width=0.5\textwidth]{../plots/task3_beta.svg}
+		\caption{Zmiany parametru $\beta$ i energii w trakcie trwania symulacji}
+		\label{task3_beta}
+	\end{figure}
+
+	\noindent Parametr $\beta$ początkowo wolno rośnie, a pod koniec symulacji szybko osiąga wartość maksymalną.
+	Oznacza to, że początkowo atomy będą szybko zmieniały położenia, a pod koniec prawdopodobieństwo zmiany położenia będzie coraz rzadsze.
+	Można to zauważyć za pomocą zmiany energii układu - na początku zmienia się ona znacznie, natomiast pod koniec praktycznie się nie zmienia.
+	Średnia odległość od początku układów współrzędnych lekko się zmieniła i ostatecznie wyniosła
+	\begin{verbatim}
+Średnia odległość od środka wyniosła 3.6429550223885765 Å
+	\end{verbatim}
+	Co jest wartością większą od optymalnej (3.52 \AA).
+	Za pomocą funkcji korelacji par jesteśmy w stanie określić promienie kolejnych stref koordynacyjnych.
+	Najważniejsza jest jednak pierwsza strefa koordynacyjna, oznaczająca odległość między najbliższymi sąsiadami, czy długość wiązania.
+	Na podstawie PCF (rys. \ref{task3_pcf})
+	jesteśmy w stanie stwierdzić, że odległość między atomami w pierwszej strefie koordynacyjnej wynosi około 1.460 \AA.
+	\begin{figure}[h]
+		\centering
+		\includesvg[width=0.7\textwidth]{../plots/task3_pcf.svg}
+		\caption{Funkcja korelacji par po optymalizacji struktury.}
+		\label{task3_pcf}
+	\end{figure}
+	Pozostałe strefy koordynacyjne są rozmyte, świadczy to o nieregularności struktury wynikającej z optymalizacji średniej jakości.
+	
+	\subsection*{Zadanie 4}
+
+	W poprzednim zadaniu atomy węgla mogły tworzyć wiązania o krotności większej niż 3 (co jest niezgodne z hybrydyzacją $sp^2$). 
+	W celu nałożenia kary na tworzenie się większej ilości wiązań zmieniana jest funkcja $\zeta_{ij}$.
+	Jeżeli węgiel tworzy więcej niż 3 wiązania, to kąt między wiązaniami jest mniejszy lub równy 90$^\circ$.
+	Dlatego informacja o ilości wiązań zachowana jest w kącie między wiązaniami, a ostateczna postać funkcji $\zeta_{ij}$ to 
+	\begin{equation}
+		\zeta_{ij} = 
+		\begin{cases}
+			10, & \cos(\theta_{ijk}) > 0 \\
+			\zeta_{ij}^\text{old}, & \text{w przeciwnym wypadku.}
+		\end{cases}
+	\end{equation}
+	Czyli kara ma postać zwrócenia dużej wartości, gdy kąt między wiązaniami jest mały.
+	Dla tych samych wartości parametrów co w zadaniu 3, z zmienioną funkcją $\zeta_{ij}$ struktura początkowa i zoptymalizowana zostały przedstawione na rys. \ref{task4_optim}
+	\begin{figure}[H]
+		\centering
+		\begin{subfigure}{0.49\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task4_random_start.png}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task4_after_optim.png}
+			\caption{}
+		\end{subfigure}
+		\caption{(a) Początkowa struktura losowa, niezoptymalizowana, (b) końcowa struktura zoptymalizowana.}
+		\label{task4_optim}
+	\end{figure}
+	
+	\noindent Końcowa energia oraz końcowy średni promień od środka układ współrzędnych wyniosły
+	\begin{verbatim}
+		Końcowa energia wynosi: -410.83556770359144 eV
+		Średnia odległość od środka wyniosła 3.622191266744983 Å
+	\end{verbatim}
+	Końcowa energia układu jest dużo bliższa energii faktycznej zoptymalizowanej struktury. 
+	Widoczne są wciąż nieregularności w strukturze, jednak tworzy ona pięcio i sześciokąty.
+	Końcowa odległość od układu początku układu współrzędnych również jest lekko za wysoka. 
+	Wykres zmian energii układu i parametru $\beta$ został przedstawiony na rys. \ref{task4_beta}.
+	\begin{figure}[H]
+		\centering
+		\includesvg[width=0.7\textwidth]{../plots/task4_beta.svg}
+		\caption{Zmiany parametru $\beta$ i energii w trakcie trwania symulacji}
+		\label{task4_beta}
+	\end{figure}
+	
+	\noindent Zauważalne są mniejsze oscylacje energii układu. 
+	Szybciej ona osiąga mniejsze wartości.
+	Energia też cały czas jest zmniejszana, nawet pod koniec symulacji, gdzie $\beta$ jest duże.
+	Zmiany te zachodzą jednak dużo wolniej. 
+	Z wykresu pcf (rys. \ref{task4_pcf}) jesteśmy w stanie odczytać promienie stref koordynacyjnych.
+	\begin{figure}[h]
+		\centering
+		\includesvg[width=0.7\textwidth]{../plots/task4_pcf.svg}
+		\caption{Funkcja korelacji par po optymalizacji struktury.}
+		\label{task4_pcf}
+	\end{figure}
+	
+	\noindent Z wykresu można odczytać, że długość wiązania wyniosła 1.457 \AA, czyli podobnie jak w poprzednich obliczeniach. 
+	Dużo widoczniejsze są kolejne strefy koordynacyjne, w których możemy wyróżnić promienie 2.37 \AA (druga strefa koordynacyjna) oraz 3.64 \AA (trzecia strefa koordynacyjna).
+	Wyraźniejsze piki potwierdzają lepsze, bardziej regularne ułożenie struktury.
+	W strukturze jednak zdarzają się nieregularności.
+	Przykładowa nieregularność została przedstawiona na rys. \ref{task4_niedobrze}.
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width=0.5\textwidth]{../plots/task4_niereg.png}
+		\caption{Przykładowa nieregularność w strukturze}
+		\label{task4_niedobrze}
+	\end{figure}
+	Widoczny jest nieregularny wielokąt, który nie znajduje się w optymalnej strukturze fullerenów.
+	
+	\subsection*{Zadanie 5}
+	
+	Widoczne są duże zmiany w promieniu początkowym i końcowym, więc propozycją jest wprowadzenie zaburzenia w postaci początkowego promienia ułożenia atomów.
+	Atomy węgla początkowo zostały rozłożone na sferze o promieniu 2.5 \AA.
+	Struktura początkowa i po optymalizacji zostały przedstawione na rys. \ref{task5_optim}
+	\begin{figure}[H]
+		\centering
+		\begin{subfigure}{0.49\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task5_random_start.png}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task5_after_optim.png}
+			\caption{}
+		\end{subfigure}
+		\caption{(a) Początkowa struktura losowa, niezoptymalizowana, (b) końcowa struktura zoptymalizowana.}
+		\label{task5_optim}
+	\end{figure}
+	
+	\noindent Pierwszym wnioskiem wynikającym z optymalizacji jest zmiana promienia fullerenu. 
+	Zmiana tego promienia w trakcie trwania symulacji została przedstawiona na rys. 
+	\ref{task5_r}.
+	\begin{figure}[h]
+		\centering
+		\includesvg[width=0.6\textwidth]{../plots/task5_r.svg}
+		\caption{Promień fullerenu w zależności od iteracji.}
+		\label{task5_r}
+	\end{figure}
+	
+	\noindent Promień w początkowych czasach symulacji szybko rośnie, a następnie się stabilizuje.
+	Po stabilizacji średni promień oscyluje wokół wartości 3.61 \AA. 
+	Jest to ta sama (podobna) wartość, jaką otrzymano zaczynając obliczenia od początkowej odległości 3.5 \AA.
+	Otrzymana końcowa energia i wartość średniej odległości od środka układu wyniosły
+	\begin{verbatim}
+Końcowa energia wynosi: -408.3394305712258 eV
+Średnia odległość od środka wyniosła: 3.611961520829443 Å
+	\end{verbatim}
+	Energia jest trochę mniejsza od wcześniej uzyskiwanych energii, jednak jej ostateczna wartość zależy także od ułożenia początkowego, które jest losowe. 
+	Zmiany energii wraz z zmianami parametru $\beta$ zostały przedstawione na rys. \ref{task5_beta}.
+	\begin{figure}[H]
+		\centering
+		\includesvg[width=0.7\textwidth]{../plots/task5_beta.svg}
+		\caption{Zmiany parametru $\beta$ i energii w trakcie trwania symulacji.}
+		\label{task5_beta}
+	\end{figure}	
+	
+	\noindent Widoczna duża zmiana energii następuje dopiero w około 25000 iteracji. 
+	Wcześniej energia maleje z małym tempem.
+	Na wykresie funkcji korelacji par dla struktury zoptymalizowanej (rys. \ref{task5_pcf}) można odczytać strefy koordynacyjne.
+	\begin{figure}[H]
+		\centering
+		\includesvg[width=0.7\textwidth]{../plots/task5_pcf.svg}
+		\caption{Funkcja korelacji par po optymalizacji struktury.}
+		\label{task5_pcf}
+	\end{figure}
+	
+	\noindent Z wykresu pcf można odczytać wartości nawet 5 promieni stref koordynacyjnych.
+	Pierwsza strefa koordynacyjna jest bardzo wyraźna, a pozostałe co raz bardziej rozmyte, jednak wciąż rozróżnialne od otoczenia.
+	
+	\subsection*{Zadanie 6}
+	
+	Wcześniej przedstawiony zestaw parametrów można zmodyfikować i przeanalizować wpływ niektórych parametrów na przebieg obliczeń. 
+	Można zmienić parametry dotyczące zmian $\beta$ oraz te dotyczące ruchów atomów.  
+	
+	\subsubsection*{Zmiana przebiegu $\beta$}
+	
+	W poprzednim przykładzie $\beta$ zmieniała się z wykładnikiem $p = 2$. 
+	Przez to w układzie początkowo była \textit{wysoka temperatura}, a cząstki miały większe prawdopodobieństwo przeskoku. 
+	Można sprawdzić, czy symulacja będzie stabilniejsza dla $p < 1$.
+	Wynik końcowy optymalizacji z $p = 0.5$ zwrócił położenie atomów o energii
+	\begin{verbatim}
+		Końcowa energia wynosi: -410.54807531075414 eV,
+	\end{verbatim}
+	Struktura otrzymana ostatecznie została przedstawiona na rys. \ref{task6_optim}
+		\begin{figure}[h]
+		\centering
+		\includegraphics[width=0.7\textwidth]{../plots/task6_try_1.png}
+		\caption{Zoptymalizowany fulleren dla $p = 0.5$}
+		\label{task6_optim}
+	\end{figure}
+	
+	\noindent Zoptymalizowana struktura ma nieregularności.
+	Jednak ma też dużo cech charakterystycznych dla tego typu struktur - dużo pięciokątów i sześciokątów.
+	Przebieg zmian energii podczas optymalizacji został przedstawiony na rys. \ref{task6_beta}
+	
+	\begin{figure}[H]
+		\centering
+		\includesvg[width=0.7\textwidth]{../plots/task6_beta_1.svg}
+		\caption{Zmiany parametru $\beta$ i energii w trakcie trwania symulacji.}
+		\label{task6_beta}
+	\end{figure}
+	
+	\noindent Szybko uzyskiwana jest zbieżność, lecz później energie w symulacji zmieniają się bardzo powoli.
+	Końcowy efekt jest bardzo podobny do uzyskiwanych wcześniej.
+	Można zauważyć mniejsze oscylacje energii, przebieg wygląda stabilniej.
+	
+	\subsubsection*{Zmiany parametrów $w$}
+	
+	Zamiast zmieniać sposobu przebiegu parametru $\beta$ można spróbować zmienić wagi zmiany położeń atomów.
+	Zostały zmienione one na:
+	\[
+	\begin{array}{|c|c|c|c|}
+		\hline 
+		w_r & w_\theta & w_\phi & w_{all} \\ \hline
+		5.0\cdot 10^{-5} & 1.00 & 1.00 & 10^{-3} \\ \hline
+	\end{array}
+	\]
+	Zwiększone zostały wagi po kątach $\theta$ oraz $\phi$, natomiast zmniejszona została waga kroku po $r$. 
+	Aby zrekompensować zmianę kroku po $r$ zwiększona została waga zmiany promienia przy próbie zmiany promienia całej struktury - $w_{all}$.
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.6\textwidth]{../plots/task6_try_2.png}
+		\caption{Zoptymalizowany fulleren dla zmienionych wag ruchów atomów}
+		\label{task6_optim_2}
+	\end{figure}
+	
+	\noindent Uzyskana struktura ma promień podobny do innych struktur. 
+	Cała składa się z wielokątów, które nie wyglądają na regularne.
+	Wykres zmian energii i parametru $\beta$ został przedstawiony na rys. \ref{task6_beta2}
+	
+	\begin{figure}[H]
+		\centering
+		\includesvg[width=0.7\textwidth]{../plots/task6_beta_2.svg}
+		\caption{Zmiany parametru $\beta$ i energii w trakcie trwania symulacji.}
+		\label{task6_beta2}
+	\end{figure}
+	
+	\noaka W badanym przypadku uzyskano bardzo szybko zbieżność. 
+	Niemal natychmiastowo.
+	Po osiągnięciu energetycznego minimum energia powoli malała liniowo.
+	Jest to związane z szybkim ustaleniem odpowiedniego promienia. 
+	Zmiany promienia (średniej odległości od środka układu) zostały przedstawione na rys. \ref{task6_r}.
+	\begin{figure}[h]
+		\centering
+		\includesvg[width=0.6\textwidth]{../plots/task6_r_2.svg}
+		\caption{Promień fullerenu w zależności od iteracji.}
+		\label{task6_r}
+	\end{figure}
+	
+	\noindent Promień cząsteczki jest trochę większy po stabilizacji.
+	Większy promień generuje kilka dużych wielokątów wewnątrz cząsteczki, które z czasem rozrastają się w dziury.
+	
+	\subsubsection*{Podsumowanie zmiany wpływu parametrów}
+	
+	Sterowanie parametrami symulacji jest ciężkie i niełatwo jest znaleźć optymalny ich zestaw.
+	Większość kombinacji daje podobny wynik końcowy, jednak ciężko je porównać, gdyż energia optymalna jest też zmienną losową.
+	W zależności od początkowego ułożenia atomów a także samego przebiegu dostajemy różne rezultaty.
+	W celu znalezienia najlepszego zestawu trzeba wykonać dużą ilość symulacji dla pojedynczego zestawu parametrów. 
+	
+	\subsection*{Zadanie 7}
+	
+	Wykonane zostały optymalizacje struktury fullerenów dla $n = [30,31,\dots,60]$ atomów węgla.
+	W trakcie trwania symulacji zmienia się energia pojedynczego wiązania oraz odległość atomów od środka układu współrzędnych. Zoptymalizowane struktury wraz z rosnącą liczbą atomów w symulacji zostały przedstawione na rys. \ref{task7_optim}.
+	To co można bezpośrednio zauważyć na podstawie rysunków struktur po optymalizacji to zmiana promieni fullerenów.
+	Na każdej wizualizacji z rys. \ref{task7_optim} została przedstawiona struktura, wraz z sferą dla referencji. 
+	Sfera ma stały promień równy 2.4 \AA. 
+	Widać zatem, że dla mniejszej ilości atomów atomy układały się bliżej tej sfery.
+	Zależność otrzymanej średniej odległości od środka układów współrzędnych zostały przedstawione na rys. \ref{task7_r}(a).
+	\begin{figure}[h]
+		\centering
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width=\textwidth]{../plots/rb.svg}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width=\textwidth]{../plots/eb.svg}
+			\caption{}
+		\end{subfigure}
+		\caption{(a) Promień fullerenu w zależności od ilości atomów, (b) energia wiązania przypadająca na jeden atom w strukturze w zależności od ilości atomów}
+		\label{task7_r}
+	\end{figure}
+	Promień zwiększa się liniowo wraz z wzrostem ilości atomów. 
+	Dodatkowe atomy w strukturze wpływają także na jej energie. 
+	Co raz większa liczba wiązań ma odzwierciedlenie w energii pojedynczego wiązania.
+	Energia wiązań przypadająca pojedynczemu atomowi została przedstawiona na rys. \ref{task7_r}(b).
+	Energia wiązania jest zdecydowanie niższa dla struktury o większej ilości atomów.
+	Jednak ciężko jest dokładnie te energie określić, wiedząc że sama optymalizacja nie jest stabilna najlepiej i wymaga dobrej parametryzacji, co widać po dużych oscylacjach wartości energii.
+
+	\begin{figure}[H] 
+		\centering
+		\captionsetup[subfigure]{labelformat=empty}
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_30.png}
+			\caption{n = 30}
+		\end{subfigure}
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_32.png}
+			\caption{n = 32}
+		\end{subfigure}
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_34.png}
+			\caption{n = 34}
+		\end{subfigure}
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_36.png}
+			\caption{n = 36}
+		\end{subfigure}
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_38.png}
+			\caption{n = 38}
+		\end{subfigure}
+		\\ 
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_40.png}
+			\caption{n = 40}
+		\end{subfigure}
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_42.png}
+			\caption{n = 42}
+		\end{subfigure}
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_44.png}
+			\caption{n = 44}
+		\end{subfigure}
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_46.png}
+			\caption{n = 46}
+		\end{subfigure}
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_48.png}
+			\caption{n = 48}
+		\end{subfigure}
+		\\ 
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_50.png}
+			\caption{n = 50}
+		\end{subfigure}
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_52.png}
+			\caption{n = 52}
+		\end{subfigure}
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_54.png}
+			\caption{n = 54}
+		\end{subfigure}
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_56.png}
+			\caption{n = 56}
+		\end{subfigure}
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_58.png}
+			\caption{n = 58}
+		\end{subfigure}
+		\\ 
+		\begin{subfigure}{0.19\textwidth}
+			\centering 
+			\includegraphics[width=\textwidth]{../plots/task7/cropped_60.png}
+			\caption{n = 60}
+		\end{subfigure}
+		\caption{Zoptymalizowane struktury o różnych ilościach atomów.}
+		\label{task7_optim}
+	\end{figure}
+	
+	\newpage
+	
+	\subsection*{Kontrola przebiegu optymalizacji}
+	
+	Ważnym elementem optymalizacji jest także kontrola jej przebiegu.
+	W dłuższych, dokładniejszych obliczeniach błędy numeryczne mogą doprowadzić do rozerwania struktury, co by wymagało powtórzenia obliczeń.
+	Ważnym parametrem jakim można śledzić podczas optymalizacji jest funkcja korelacji par (pcf).
+	Dla szybkiej, testowej optymalizacji (10000 iteracji) rozpoczynającej od losowego położenia atomów w promieniu 2.5 \AA $\,$ od środka układu współrzędnych dokonano zapisu struktury w kilku momentach.
+	Funkcje korelacji par dla $it = 1,10,100,1000$ zostały przedstawione na rys. \ref{optim_pcf}.
+	\begin{figure}[h]
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width=\textwidth]{../plots/task_add_pcf_it1.svg}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width=\textwidth]{../plots/task_add_pcf_it10.svg}
+			\caption{}
+		\end{subfigure}
+		\\
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width=\textwidth]{../plots/task_add_pcf_it100.svg}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includesvg[width=\textwidth]{../plots/task_add_pcf_it1000.svg}
+			\caption{}
+		\end{subfigure}
+		\caption{Funkcje korelacji par dla (a) pierwszej iteracji, (b) dziesiątej iteracji, (c) setnej iteracji, (d) tysięcznej iteracji.}
+		\label{optim_pcf}
+	\end{figure}
+	
+	\noindent na podstawie pcf można zauważyć w którym momencie symulacji atomy zaczęły się układać w regularną strukturę.
+	Dla pierwszej i dziesiątej iteracji widać dużą ilość atomów zebranych w klastry, o małych odległościach wokół siebie.
+	W kolejnych iteracjach widać, że te odległości się zwiększają, a dla tysięcznej można zauważyć kolejne strefy koordynacyjne.
+	Ułożenia atomów odpowiadające przedstawionym PCF zostały przedstawione na rys. \ref{optim_it}.
+	\begin{figure}[H]
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/task_add_it1.png}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/task_add_it10.png}
+			\caption{}
+		\end{subfigure}
+		\\
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/task_add_it100.png}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/task_add_it1000.png}
+			\caption{}
+		\end{subfigure}
+		\caption{Ułożenia atomów w (a) pierwszej iteracji, (b) dziesiątej iteracji, (c) setnej iteracji, (d) tysięcznej iteracji.}
+		\label{optim_it}
+	\end{figure}
+	
+	\noindent Ciekawym aspektem jest ułożenie się atomów w kształty \textit{niedozwolone} czyli takie, które wymagają się od atomów tworzenia więcej niż 4 wiązań.
+	Taka struktura jest bardzo regularna, lecz nierzeczywista. 
+	Wynika to z nałożenia małego promienia fullerenu na początku symulacji.
+	Przez niską ilość iteracji atomy nie zdążyły się rozszerzyć i ułożyły się w niedozwolone wielokąty.
+	
+	
+	\newpage
+	
+	\section*{Podsumowanie}
+	
+	Dynamika molekularna jest bardzo popularnym działem nauki, dlatego można skorzystać z wielu już napisanych narzędzi.
+	Przykładowo są to programy do budowania i wizualizacji cząstek takie jak \textbf{IQMol} czy \textbf{Avogadro}. 
+	Przykładowe wizualizacje otrzymanych fullerenów zostały przedstawione na rys. \ref{pods_8}.
+	
+	\begin{figure}[H]
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/iqmol.png}
+			\caption{}
+		\end{subfigure}
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width=\textwidth]{../plots/avogadro.png}
+			\caption{}
+		\end{subfigure}
+		\caption{Wizualizacje zoptymalizowanej struktury w (a) IQMol oraz (b) Avogadro.}
+		\label{pods_8}
+	\end{figure}
+	
+	\noaka Programy do wizualizacji często mają opcje stworzenia pliku wejściowego do bardziej zaawansowanego programu obliczeniowego, wykorzystującego teorię DFT (kwantowa dynamika molekularna).
+	Jak można zauważyć na rys. \ref{pods_8}(a) \textbf{IQMol} jest w stanie samodzielnie znaleźć podwójne wiązania między atomami węgla, co stanowi wartościową interpretacje mającą odwzorowanie w teorii hybrydyzacji.
+	\\
+	\\
+	Prosty algorytm mający na celu zoptymalizowanie struktury nie uzyskał (dla żadnych parametrów) struktury idealnej, przedstawionej na rysunku \ref{test_fulleren}.
+	Uzyskanie takiej struktury wymagało by bardzo długiego, kontrolowanego \textit{wyżarzania} lub wykorzystania innego algorytmu i teorii.
+	Warto jednak zwrócić uwagę na obliczone energie struktur zoptymalizowanych.
+	Są one bardzo bliskie energii idealnej, różnią się zaledwie o kilkanaście elektronowoltów.
+	\\
+	\\
+	Obliczenia i optymalizacja algorytmu zostały wykonane w języku \julia $\,$ służącym między innymi do obliczeń numerycznych.
+	Wizualizacja struktur odbyła się za pomocą biblioteki \texttt{Makie} z interaktywnym silnikiem \texttt{GLMakie}.
+	
+\end{document}
+
+
+
