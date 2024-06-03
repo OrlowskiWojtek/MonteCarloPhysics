@@ -8,6 +8,10 @@
 *.dat
 *.png
 
+# those long DSMC simulations
+
+data_evolution*
+
 # directiories used to store data and plots
 
 data/
