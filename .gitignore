@@ -26,3 +26,12 @@ tasks/
 
 *.zip
 407605_Orlowski_Wojciech/
+
+# tex garbage
+
+*.aux
+*.log
+*.gz
+*.fdb_latexmk
+*.fls
+
