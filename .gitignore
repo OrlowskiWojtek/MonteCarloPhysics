@@ -21,3 +21,8 @@ data/
 plots/
 gallery/
 tasks/
+
+# folders to be send
+
+*.zip
+407605_Orlowski_Wojciech/
