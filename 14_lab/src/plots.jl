@@ -1,17 +1,17 @@
 function plot_energy_variance(energy::Array{Float64}, variance::Array{Float64}, a::Vector{Float64}, c::Vector{Float64})
-    fig = Figure(size=(768,512))
+    fig = Figure(size=(768,432))
 
-    ax1 = Axis(fig[1,1], title = "Energia lokalna")
+    ax1 = Axis(fig[1,1], title = "Energia [a.u.]", xlabel ="a", ylabel = "c")
     h = heatmap!(ax1,a,c,energy, colormap = :solar)
     Colorbar(fig[2,1],h, vertical = false)
 
-    ax2 = Axis(fig[1,2], title = "σ")
-    h = heatmap!(ax2,a,c,variance, colormap = :dense)
+    ax2 = Axis(fig[1,2], title = "σ", xlabel ="a")
+    h = heatmap!(ax2,a,c,variance, colormap = :acton)
     Colorbar(fig[2,2],h, vertical = false)
     hideydecorations!(ax2)
 
-    ax3 = Axis(fig[1,3], title = "log(σ + 10⁻²⁰)")
-    h = heatmap!(ax3,a,c,log.(variance .+ 10^(-20)), colormap = :dense)
+    ax3 = Axis(fig[1,3], title = "log(σ + 10⁻²⁰)", xlabel ="a")
+    h = heatmap!(ax3,a,c,log.(variance .+ 10^(-20)), colormap = :viridis)
     Colorbar(fig[2,3],h, vertical = false)
     hideydecorations!(ax3)
     rowsize!(fig.layout, 1, Aspect(3,1))

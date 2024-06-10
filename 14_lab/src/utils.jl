@@ -31,19 +31,3 @@ function save_variance(variance::Array)
 
     close(file)
 end
-
-function load_data(filename::String)
-    lines = readlines(filename)
-    y_size = length(lines)
-    x_size = 0
-    i = 1
-    
-    while(true)
-        if(lines[1][begin] == '#')
-            continue
-        end
-        x_size = length(lines[i])
-        i+=1
-        break
-    end
-end

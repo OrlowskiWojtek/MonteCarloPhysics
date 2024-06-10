@@ -1,0 +1,223 @@
+\documentclass[12pt, a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[MeX]{polski}
+\usepackage[table]{xcolor}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{hyperref}
+\usepackage{physics}
+\usepackage{geometry}
+\usepackage{bbold}
+
+
+\newgeometry{tmargin=2cm, bmargin=1.5cm, lmargin=2cm, rmargin=2cm}
+
+\usepackage{sectsty}
+\definecolor{ColorOne}{RGB}{0, 0, 0}
+\sectionfont{\color{ColorOne}}
+\subsectionfont{\color{ColorOne}}
+\subsubsectionfont{\color{ColorOne}}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=ColorOne,
+  filecolor=ColorOne,
+  urlcolor=ColorOne,
+  citecolor=ColorOne,
+}
+
+\author{Wojciech Orłowski}
+\date{\today}
+\title{\textsc{Wariacyjne Kwantowe Monte Carlo dla atomu wodoru} - sprawozdanie}
+
+\begin{document}
+    \maketitle
+
+    \section*{Wstęp}
+
+    Istnieje wiele metod obliczeniowych pozwalających obliczyć mechanikę nanoświata, w którym rządzi mechanika kwantowa.
+    Jedną z metod pozwalających oszacować wartość energii i postać funkcji falowej jest wariacyjna kwantowa metoda Monte Carlo.
+    Opiera się ona na metodzie wariacyjnej, w której możemy ograniczyć oddolnie wartość energii dla rozwiązania równania Schrodingera \eqref{schrodinger}..
+    \begin{equation}
+        \hat{H} \ket{\psi_n} = E_n \ket{\psi_n}.
+        \label{schrodinger}
+    \end{equation}
+    Wprowadźmy pewien stan próbny $\ket{\tilde{\psi}}$.
+    Energia, będąca właściwie funkcjonałem od stanu, dla stanu próbnego będzie zapisana poprzez:
+    \begin{equation}
+        \varepsilon[\tilde{\psi}] = \frac{\bra{\tilde{\psi}}\hat{H}\ket{\tilde{\psi}}}{\bra{\tilde{\psi}}\ket{\tilde{\psi}}}
+    \end{equation}
+    Wartość oczekiwana hamiltonianu w stanie próbnym $\ket{\tilde{\psi}}$ wynosi:
+    \begin{equation}
+        \bra{\tilde{\psi}} \hat{H} \ket{\tilde{\psi}} = \bra{\tilde{\psi}} \hat{H} \mathbb{1} \ket{\tilde{\psi}},
+        \label{exp_value}
+    \end{equation}
+    korzystając z zależności zagadnienia własnego \eqref{schrodinger}, w którym wektory własne tworzą bazę zupełną można zapisać
+    \begin{equation}
+        \bra{\tilde{\psi}} \hat{H} \mathbb{1} \ket{\tilde{\psi}} = \bra{\tilde{\psi}} \hat{H} \sum_{n} \ket{\psi_n}\bra{\psi_n}  \ket{\tilde{\psi}}
+        = \sum_n E_n \abs{\bra{\psi_n}\ket{\tilde{\psi}}}^2.
+    \end{equation}
+    Energia stanu podstawowego jest najniższą z energii $E_n$, dlatego prawdziwa będzie relacja
+    \begin{equation}
+        \sum_n E_n \abs{\bra{\psi_n}\ket{\tilde{\psi}}}^2 \geq E_0 \sum_n \abs{\bra{\psi_n}\ket{\tilde{\psi}}}^2 = E_0 \sum_n \bra{\tilde{\psi}}\ket{\psi_n}\bra{\psi_n}\ket{\tilde{\psi}} = E_0 \bra{\tilde{\psi}}\ket{\tilde{\psi}},
+    \end{equation}
+    przenosząc otrzymaną relację, do relacji wejściowej z \eqref{exp_value} można dojść do
+    \begin{equation}
+        E_0 \leq \frac{\bra{\tilde{\psi}}\hat{H}\ket{\tilde{\psi}}}{\bra{\tilde{\psi}}\ket{\tilde{\psi}}} = \varepsilon[\tilde{\psi}].
+    \end{equation}
+    Jest to bardzo ważny wynik, gdyż oznacza on że dla funkcji stanu podstawowego istnieje minimum lokalne energii w dziedzinie dostępnych stanów.
+    Wybierając za funkcję próbną dowolną sparametryzowaną funkcję możemy znaleźć taki zestaw parametrów, dla którego $\varepsilon[\tilde{\psi}]$ jest minimum.
+    Jest duże prawdopodobieństwo, że stan odpowiadający tej funkcji jest stanem podstawowym.
+    W metodach wykorzystujących metodę wariacyjną funkcjonał $\varepsilon[\tilde{\psi}]$ staje się funkcją parametrów wariacyjnych, a całe zagadnienie polega na znajdywaniu minimum tej funkcji.
+    \\
+    \\
+    Metodę Monte Carlo wykorzystamy aby oszacować wartość energii dla konkretnych parametrów wariacyjnych, czyli obliczyć wartość wyrażenia
+    \begin{equation}
+        \varepsilon[\tilde{\psi}] := \varepsilon(c_1,c_2,\dots,c_l) =  \frac{\bra{\tilde{\psi}}\hat{H}\ket{\tilde{\psi}}}{\bra{\tilde{\psi}}\ket{\tilde{\psi}}} 
+        = \frac{\int \dd x \, \tilde{\psi}^*(x)\hat{H}\tilde{\psi}(x)  }{\int \dd x \, \tilde{\psi}^*(x) \tilde{\psi}(x)}.
+    \end{equation}
+    Energię w ten sposób możemy obliczyć energię dla dowolnego stanu wyrażonego funkcją falową $\phi(x)$.
+    \begin{equation}
+        E = \frac{\int \dd x \, \phi^*(x) \hat{H} \phi(x)}{\int \dd x\, \phi^*(x)\phi(x)} = \frac{\int \dd x \, \abs{\phi(x)}^2 \frac{\hat{H} \phi(x)}{\phi(x)}}{\int \dd x \, \abs{\phi(x)}^2},
+        \label{energy}
+    \end{equation} 
+    takie wyrażenie też możemy zapisać korzystając z pojęć funkcji gęstości prawdopodobieństwa oraz energii lokalnej
+    \begin{gather}
+        P(x) = \frac{\abs{\phi(x)}^2}{\int \dd x \, \abs{\phi(x)}^2}, \\
+        E_{\text{lok}}(x) = \frac{\hat{H}\phi(x)}{\phi(x)},  
+    \end{gather}
+    co podstawiając do wyrażenia na energie \eqref{energy} daje
+    \begin{equation}
+        E = \int \dd x \, P(x) E_{\text{lok}}(x).
+    \end{equation} 
+    Korzystanie z tych pojęć nie jest jedynie trikiem matematycznym pozwalającym intepretować dane zagadnienie jako stochastyczne, lecz jest ono uzasadnione także probabilistyczną interpretacją funkcji falowej.
+    Energia układu jest wartością oczekiwaną energii lokalnej.
+    Jedną z ważnych zalet wynikających z tej interpretacji funkcji falowej jest możliwość obliczenia tej całki metodą Monte Carlo korzystając z przypadkowego błądzenia lub odpowiednich łancuchów.
+    Całe zagadnienie polega na tym aby wylosować daną ilość punktów o rozkładzie zadanym poprzez funkcję gęstości prawdopodobieństwa.
+    W ćwiczeniu skorzystano z algorytmu metropolisa w którym nowe punkty losowane są na podstawie pewnego prawdopodobieństwa akceptacji.
+    Prawdopodbieństwo akceptacji nowego położenia jest wyrażone poprzez
+    \begin{equation}
+        p_{\text{acc}} =\min\left[\frac{P(x_{\text{new}})}{P(x)},1 \right] = \min\left[\abs{\frac{\phi(x_{\text{new}})}{\phi(x)}}^2,1 \right].
+    \end{equation}
+    Energia stanu jest szacowana na podstawie uśrednienie wartości energii lokalnej po wylosowanych położeniach podczas błądzenia losowego
+    \begin{equation}
+        E = \frac{1}{N} \sum_{i=1}^N E_{\text{lok}}(x_i),
+    \end{equation}
+    a wariancję jako różnicę pierwszego i drugiego momentu. Dla rozwiązania dokładnego, w którym energia jest energią szukanego $n$-tego stanu otrzymamy
+    \begin{equation}
+        \text{var}(\hat{H}) = \frac{\bra{\phi} (\hat{H} - E)^2 \ket{\phi}}{\bra{\phi}\ket{\phi}} =\int \dd x \, P(x) \abs{E_{\text{lok}}(x) - E} = \frac{1}{N} \sum_{i=1}^N \left( E_{\text{lok}}(x_i) - E \right) = 0,
+    \end{equation}
+    zatem dla szukanego stanu wartość wariancji się zeruje.
+    \\
+    \\
+    W zadanym programie wykonujemy obliczenia dotyczące atomu wodoru.
+    Rozważania dotyczące mechaniki atomu wodoru rozpoczynamy od wprowadzenia odpowiedniego układu współrzędnych sferycznych, gdzie możemy dokonać separacji zmiennych.
+    Część radialna hamiltonianu ma postać
+    \begin{equation}
+        \hat{H} = -\frac{1}{2} \left[ \frac{1}{r^2} \pdv{r} r^2 \pdv{r} - \frac{l(l+1)}{r^2} \right] - \frac{1}{r}.
+    \end{equation}
+    Wprowadzenie nowego układu współrzędnych wymagało też dokonania zmiany w całce, za pomocą której liczymy energię - funkcja podcałkowa jest przemnożona przez odpowiedni Jakobian przejścia.
+    Nowa funkcja gęstości prawdopodobieństwa, której zmiana jest związana z Jakobianem jest zdefiniowana jako
+    \begin{equation}
+        P(r) = \frac{r^2\abs{\Psi_T(r)}^2}{\int \dd r \, \abs{\Psi_T(r)}^2},
+    \end{equation}
+    a wartość energii lokalnej pozostaje bez zmian.
+    Należy natomiast pamiętać, że zmiana wartości funkcji gęstości prawdopodobieństwa powoduje zmianę prawdopodobieństwa akcpetacji nowego położenia.
+    Znamy dokładne rozwiązania dla atomu wodoru, dlatego możemy zapostulować taką funkcję próbną, która dla odpowiednich parametrów da wartość dokładną dla obu szukanych przypadków (stanu podstawowego i pierwszego stanu wzbudzonego).
+    Zatem deklarujemy funkcję próbną zależną od dwóch parametrów wariacyjnych
+    \begin{equation}
+        \Psi_T(r) = (1 + cr)\exp(-a r).
+    \end{equation}
+    Stan podstawowy i pierwszy wzbudzony są wyrażone poprzez 
+    \begin{equation}
+        \begin{array}{c ccc}
+           \text{podstawowy} & a = 1; & c = 0; & E = -\frac{1}{2} \\
+           \text{wzbudzony} & a = \frac{1}{2} & c = -\frac{1}{2} & E = -\frac{1}{8} 
+        \end{array}
+    \end{equation}
+    Obliczona energia lokalna dla wybranej funkcji próbnej ma postać 
+    \begin{equation}
+        E_{\text{lok}} = \frac{-a^2cr^2 + (-a^2 + 4ac -2c)r +2a -2c -2}{2cr^2 + 2r}.
+    \end{equation}
+    Zatem znając wartość energii dla danych parametrów $a,c$ jesteśmy w stanie ją zminimalizować.
+    W ćwiczeniu nie użyto żadnego algorytmu minimalizującego, lecz stworzono całą mapę energii w zależności parametrów $a$ i $c$.
+
+    \newpage
+
+    \section*{Wyniki}
+
+    W zadaniu przyjęto, że maksymalna liczba kroków losowych wynosi $N = 10^6$.
+    Sprawdzono wartości energii oraz jej wariancji dla $a \in [0.3,1.2]$ oraz $c \in [-0.7,0.3]$. 
+    Parametry wariacyjne zmieniane były o kroki $\Delta_a = \Delta_c = 0.02$, tak aby z pewnością trafić na parametry dokładne. 
+    \\
+    \\
+    Obliczenia wykonano za pomocą języka programowania \texttt{Julia}. 
+    Obliczone wartości energii oraz jej wariancji zostały przedstawione na rys. \ref{maps}.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width = \textwidth]{../plots/maps.pdf}
+        \caption{Obliczone mapy energii, wariancji i logarytmu z wariancji dla atomu wodoru.}
+        \label{maps}
+    \end{figure}
+
+    \noindent Obliczone energie były do siebie bardzo podobne i ciężko byłoby znaleźć minima lokalne wizualnie.
+    Dlatego musimy skorzystać z warunku zerowania się wariancji.
+    Jednak duża część mapy wariancji, tak jak na widocznej mapie, jest bliska wartości zerowej, i ciężko odnaleźć gdzie dokładnie znajduje się zero.
+    Aby uwidocznić najmniejsze znaleziony wartości skonstruowano trzecią mapę, przedstawiającą wartości logarytmu z wariancji.
+    Logarytm z zera jednak wynosi minus nieskończoność
+    \[ \lim_{x \to 0} \log(x) = -\infty, \]
+    dlatego w celu uniknięcia osobliwości do wartości wariancji sztucznie dodano $10^{-20}$. 
+    W ten sposób otrzymano graficznie dwa wyraźne miejsca, w których wariancja się zeruje (ma wartość bardzo bliską zera).
+    Graficznie też można odczytać wartości parametrów wariacyjnych, dla których znaleziono stany własne hamiltionianu.
+    Są to wartości dokładne. 
+    Z wartości energii natomiast dla tych punktów możemy stwierdzić, który z nich jest stanem podstawowym, a który wzbudzonym.
+    Tak widzimy, że mniejsze wartości energii znajdują się w prawym górnym rogu mapy, dlatego punkt (a = 1, c = 0) jest uznawany za stan podstawowy.
+    W lewym dolnym rogu wartości energii są wyższe, co można rozpoznać po samym kolorze mapy.
+    Dla wartości parametrów wariacyjnych (a = 0.5, c = -0.5) znaleziono pierwszy stan wzbudzony.
+    \\
+    \\
+    Zgodnie z wcześniej wprowadzoną teorią wiemy, że funkcja gęstości prawdopodobieństwa odpowiadająca danej energii lokalnej wynosi
+    \[ P(r) = r^2 \abs{\Psi_T(r)}^2, \]
+    z dokładnością do unormowania.
+    Całkując schematem metropolisa powinniśmy wziąć pod uwagę ilość punktów zgodną z tym rozkładem.
+    Dodatkowo dla dokładnej funkcji falowej rozkład wylosowanych punktów powinien odpowiadać wartości rozkładu prawdopodobieństwa dla stanu dokładnego.
+    Rozkład wylosowanych punktów wraz z naniesionym teoretycznym rozkładem prawdopodobieńśtwa dla funkcji stanu podstawowego został przedstwiony na rys. \ref{hist}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width = 0.7\textwidth]{../plots/hist.pdf}
+        \caption{Unormowany histogram wylosowanych punktów wraz z teoretyczną funkcją gęstości prawdopodobieństwa dla stanu podstawowego.}
+        \label{hist}
+    \end{figure}
+
+    \noindent Dla $n=10^6$ widzimy, że obie krzywe są bardzo podobne do siebie kształtem.
+    Jedyne większe odchylenia można zaobserwować dla maksimum tej krzywej, czyli w miejscu gdzie punkty powinny być najczęściej losowane.
+    Sprawdzenie dokładności dopasowania może stanowić metodę walidacji wyników.
+    Odchylenia nie świadczą jednak o błędzie w obliczeniach, tak jak w tym przypadku uzyskano wartość energii równą dokładnej ($E = - \frac{1}{2}$).    
+
+    \section*{Podsumowanie}
+
+    Prosty algorytm całkowania pozwolił na zapoznanie się z ideą kwantowego wariacyjnego Monte Carlo.
+    Metoda ta ma wiele zalet - jest szybka, dokładna, opiera się na dobrze opracowanej i prostej metodzie wariacyjnej oraz może mieć wiele modyfikacji.
+    Podstawową modyfikacją wydaje się implementacja algorytmu minimalizującego, tak aby nie trzeba było obliczać wartości energii tak dużą ilość razy.
+    Metodę tą można też rozszerzyć do układów wielociałowych bazując na metodzie Hartree-Focka i wyznaczników Slatera.
+    \\
+    \\
+    Dodatkowym bonusem korzystania z tej metody w aspekcie mechaniki kwantowej jest łatwa możliwość oszacowania wariancji, a co za tym idzie błędu.
+    Jak wiadomo, funkcję falowe muszą być klasy $L_2$ (całkowalne w kwadracie).
+    Aby obliczyć wartość wariancji należy obliczyć wartość oczekiwaną kwadratu zmiennej losowej - zatem też należy obliczyć całkę kwadratu funkcji.
+    Jest to możliwe dla funkcji klasy $L_2$. 
+
+
+
+\end{document}

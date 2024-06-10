@@ -1,7 +1,8 @@
 using Makie, CairoMakie, DelimitedFiles
 
 include("qvmc.jl")
-
+include("plots.jl")
+include("utils.jl")
 ## 
 
 a_begin = 0.3
@@ -21,7 +22,6 @@ hydrogen_atom = QVMC(
     0.1
 )
 
-
 ##
 
 energy = Array{Float64}(undef, length(a), length(c))
@@ -40,6 +40,9 @@ save_variance(variance)
 
 ene = plot_energy_variance(energy,variance,a,c)
 save("plots/maps.pdf",ene)
+
+energy = readdlm("data/energy.dat", comments = true)
+variance = readdlm("data/variance.dat", comments = true)
 
 ## 
 
